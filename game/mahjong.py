@@ -15,6 +15,8 @@ class MahjongGame:
         self.round_wind = WINDS[0]
         self.current_player = 0  # idx into self.players
         self.first = True  # flag the very first turn
+        self.discard = False  # skip drawing a tile
+        self.done = False
 
         # deal 14 tiles to dealer, 13 tiles to others
         for i in range(NUM_PLAYERS):
@@ -41,15 +43,20 @@ class MahjongGame:
         # TODO: check for heavenly hand
 
         # Player draws tile
-        if not self.first:
+        tile = None
+        if not self.first and not self.discard:
             tile = self.deal_tile(player)
             print(f"Player {player} draws {tile}")
 
         # Check current player for win or kong
-        if check_win(player, tile, True):
-            print(f"Player {player} wins")
-            return
-        if not self.first:
+        win_melds = check_win(player, tile, True)
+        if win_melds:
+            opt = player.query_meld("win", win_melds)
+            if opt:
+                print(f"Player {player} wins")
+                self.done = True
+                return
+        if not self.first and not self.discard:
             if check_kong(player, tile, True):
                 # TODO: tile replacement on kong
                 pass
@@ -57,28 +64,58 @@ class MahjongGame:
             self.first = False
 
         # Player discards tile
+        print("Hand: ", end="")
         player.print_hand(True)
-        discard_idx = int(input())  # TODO: remove later
+        print("Melds: ", end="")
+        player.print_melds()
+        discard_idx = int(input(f"Choose a discard (0...{len(player.hand)-1}): "))  # TODO: remove later
         discarded_tile = player.discard_tile(discard_idx, True)
         self.table.append(discarded_tile)
         print(f"Player {player} discarded {discarded_tile}")
+        self.discard = False
 
-        # TODO: Check other players for pung, chow, kong, win
         actions = {}
-        for i in range(1, NUM_PLAYERS+1):
-            next_player = self.players[(self.current_player + 1) % NUM_PLAYERS]
-            c, p, k, w = False, False, False, False
-            if (i == 1):
-                c = check_chow(next_player, discarded_tile, False)
-            p = check_pung(next_player, discarded_tile, False)
-            k = check_kong(next_player, discarded_tile, False)
-            w = check_win(next_player, discarded_tile, False)
-            actions[next_player] = (c, p, k, w)
+        for i in range(1, NUM_PLAYERS):
+            next_player_idx = (self.current_player + i) % NUM_PLAYERS
+            next_player = self.players[next_player_idx]
+            actions[next_player_idx] = {
+                "win": check_win(next_player, discarded_tile, False),
+                "kong": check_kong(next_player, discarded_tile, False),
+                "pung": check_pung(next_player, discarded_tile, False),
+                "chow": check_chow(next_player, discarded_tile, False) if (i == 1) else []
+            }
+        print(actions)
 
-        # Check for draw
-        if not self.wall:
-            print("Draw")
-            return
+        # Resolve potential actions
+        for action in ["win", "kong", "pung", "chow"]:
+            for i in range(1, NUM_PLAYERS):
+                next_player_idx = (self.current_player + i) % NUM_PLAYERS
+                options = actions[next_player_idx][action]
+                if options:
+                    player = self.players[next_player_idx]
+                    print("Hand: ", end="")
+                    player.print_hand(True)
+                    print("Melds: ", end="")
+                    player.print_melds()
+                    opt = int(player.query_meld(action, options))
+                    if opt:
+                        player.hand.append(self.table.pop())  # add discarded tile to player's hand
+                        player.perform_meld(options[opt-1])
+                        if action == "win":
+                            print(f"Player {next_player_idx} wins")
+                            self.done = True
+                            return
+                        print(f"Player {next_player_idx} has performed a {action}")
+
+                        self.discard = True
+                        self.current_player = next_player_idx
+                        return
+
+        else:
+            # Check for draw
+            if not self.wall:
+                print("Draw")
+                return
 
         self.current_player = (self.current_player + 1) % NUM_PLAYERS
         print()

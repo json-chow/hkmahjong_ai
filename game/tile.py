@@ -12,6 +12,9 @@ class Tile:
     def __str__(self):
         return self.value + "_" + self.suit
 
+    def __repr__(self):
+        return str(self)
+
     def __lt__(self, other):
         # compare by suits
         if self.suit != other.suit:
