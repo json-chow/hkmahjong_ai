@@ -1,5 +1,11 @@
+from __future__ import annotations
+import typing
 from game.utils import init_wall, check_win, check_kong, check_chow, check_pung
 from game.player import Player
+
+
+if typing.TYPE_CHECKING:
+    from game.tile import Tile
 
 
 NUM_PLAYERS = 4
@@ -8,7 +14,7 @@ WINDS = ["E", "S", "W", "N"]
 
 class MahjongGame:
 
-    def __init__(self, seed=None):
+    def __init__(self, seed: int | None = None) -> None:
         self.wall = init_wall(seed)
         self.table = []  # discards
         self.players = [Player(i, wind=WINDS[i]) for i in range(NUM_PLAYERS)]
@@ -16,6 +22,7 @@ class MahjongGame:
         self.current_player = 0  # idx into self.players
         self.first = True  # flag the very first turn
         self.discard = False  # skip drawing a tile
+        self.draw = False
         self.done = False
 
         # deal 14 tiles to dealer, 13 tiles to others
@@ -24,7 +31,7 @@ class MahjongGame:
                 self.deal_tile(self.players[i])
         self.deal_tile(self.players[0])
 
-    def deal_tile(self, player):
+    def deal_tile(self, player: Player) -> Tile:
         '''Deals a tile to player and returns the dealt tile'''
         while True:
             tile = self.wall.pop()
@@ -35,12 +42,27 @@ class MahjongGame:
                 player.hand.append(tile)
                 return tile
 
-    def step(self):
+    def step(self) -> None:
         '''Initiates one turn of the game'''
+        # Check for draw
+        if not self.wall:
+            print("Draw")
+            self.done = True
+            self.draw = True
+            return
+
         player = self.players[self.current_player]
         print(f"Player {player}'s turn... ")  # TODO: remove later
 
-        # TODO: check for heavenly hand
+        # Check for heavenly hand
+        if self.first:
+            win_melds = check_win(player, None, True)
+            if win_melds:
+                opt = player.query_meld("win", win_melds)
+                if opt:
+                    print(f"Player {player} wins with a heavenly hand")
+                    self.done = True
+                    return
 
         # Player draws tile
         tile = None
@@ -56,11 +78,7 @@ class MahjongGame:
                 print(f"Player {player} wins")
                 self.done = True
                 return
-        if not self.first and not self.discard:
-            if check_kong(player, tile, True):
-                # TODO: tile replacement on kong
-                pass
-        else:
+        if self.first:
             self.first = False
 
         # Player discards tile
@@ -84,7 +102,6 @@ class MahjongGame:
                 "pung": check_pung(next_player, discarded_tile, False),
                 "chow": check_chow(next_player, discarded_tile, False) if (i == 1) else []
             }
-        print(actions)
 
         # Resolve potential actions
         for action in ["win", "kong", "pung", "chow"]:
@@ -106,16 +123,12 @@ class MahjongGame:
                             self.done = True
                             return
                         print(f"Player {next_player_idx} has performed a {action}")
-
                         self.discard = True
                         self.current_player = next_player_idx
+                        if action == "kong":
+                            print(f"Drawing replacement tile for player {next_player_idx}")
+                            self.discard = False
                         return
-
-        else:
-            # Check for draw
-            if not self.wall:
-                print("Draw")
-                return
 
         self.current_player = (self.current_player + 1) % NUM_PLAYERS
         print()

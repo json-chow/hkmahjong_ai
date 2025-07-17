@@ -1,9 +1,10 @@
 from game.tile import Tile
+from game.player import Player
 import random
 from collections import Counter
 
 
-def init_wall(seed=None):
+def init_wall(seed: int | None = None) -> list[Tile]:
     '''Initializes and shuffles the mahjong wall'''
     wall = []
     for suit in Tile.suits:
@@ -32,7 +33,7 @@ def init_wall(seed=None):
     return wall
 
 
-def check_win(player, tile, current_player: bool) -> list[list[list[Tile]]]:
+def check_win(player: Player, tile: Tile | None, current_player: bool) -> list[list[list[Tile]]]:
     '''Checks if the player has either a self-draw win or a win by discard'''
     # TODO: probably just precompute all winning hands, shouldn't be that many
     # Count number of tiles in current hand
@@ -56,7 +57,7 @@ def check_win(player, tile, current_player: bool) -> list[list[list[Tile]]]:
     return possible_wins
 
 
-def _check_meld(tile_counts) -> tuple[bool, list[list[list[Tile]]]]:
+def _check_meld(tile_counts: Counter) -> tuple[bool, list[list[list[Tile]]]]:
     '''Checks and returns all melds if melds can be formed in a hand'''
     if tile_counts.total() == 0:
         return True, [[]]
@@ -102,7 +103,7 @@ def _check_meld(tile_counts) -> tuple[bool, list[list[list[Tile]]]]:
     return bool(melds), melds
 
 
-def check_kong(player, tile, current_player: bool) -> list[list[Tile]]:
+def check_kong(player: Player, tile: Tile, current_player: bool) -> list[list[Tile]]:
     '''Checks if the given tile can be used by player to form a kong'''
     # Check if a kong can be formed from an exposed pung
     if current_player:
@@ -117,7 +118,7 @@ def check_kong(player, tile, current_player: bool) -> list[list[Tile]]:
     return []
 
 
-def check_pung(player, tile, current_player: bool) -> list[list[Tile]]:
+def check_pung(player: Player, tile: Tile, current_player: bool) -> list[list[Tile]]:
     '''Checks if the given tile can be used by player to form a pung'''
     if current_player:
         if player.hand.count(tile) == 3:
@@ -128,7 +129,7 @@ def check_pung(player, tile, current_player: bool) -> list[list[Tile]]:
     return []
 
 
-def check_chow(player, tile, current_player: bool) -> list[list[Tile]]:
+def check_chow(player: Player, tile: Tile, current_player: bool) -> list[list[Tile]]:
     '''Checks if the given tile can be used by player to form a chow'''
     # Suit must be dots, bamboo, or characters
     if tile.suit not in Tile.suits[:3]:

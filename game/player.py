@@ -1,36 +1,48 @@
+from __future__ import annotations
+import typing
+
+
+if typing.TYPE_CHECKING:
+    from game.tile import Tile
+
+
 class Player:
 
-    def __init__(self, id, wind):
+    def __init__(self, id: int, wind: str) -> None:
         self.id = id
         self.hand = []
         self.melds = []
         self.discards = []
         self.seat_wind = wind
 
-    def print_hand(self, sort_hand=False):
+    def print_hand(self, sort_hand: bool = False) -> None:
         if sort_hand:
             print(", ".join(str(tile) for tile in sorted(self.hand)))
         else:
             print(", ".join(str(tile) for tile in self.hand))
 
-    def print_melds(self):
+    def print_melds(self) -> None:
         print(self.melds)
 
-    def discard_tile(self, idx, sorted_hand=False):
+    def discard_tile(self, idx: int, sorted_hand: bool = False) -> Tile:
         if sorted_hand:
             idx = self.hand.index(sorted(self.hand)[idx])
-        return self.hand.pop(idx)
+        discarded_tile = self.hand.pop(idx)
+        self.discards.append(discarded_tile)
+        return discarded_tile
 
-    def query_meld(self, type, options):
+    def query_meld(self, type: str, options: list[list[Tile]] | list[list[list[Tile]]]) -> str:
+        '''Manual melding performed by human player'''
         print(f"Player {self.id}, you have a potential {type}")
         print("0: Skip")
         for i in range(1, len(options)+1):
             print(f"{i}: {options[i-1]}")
         return input("Choice: ")
 
-    def perform_meld(self, to_meld):
+    def perform_meld(self, to_meld: list[list[Tile]] | list[Tile]) -> None:
         if isinstance(to_meld[0], list):
             # Perform win
+            to_meld = typing.cast(list[list[Tile]], to_meld)
             for meld in to_meld:
                 for tile in meld:
                     self.hand.remove(tile)
@@ -41,5 +53,5 @@ class Player:
                 self.hand.remove(tile)
             self.melds.append(to_meld)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.id)
