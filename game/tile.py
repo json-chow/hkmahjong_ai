@@ -4,6 +4,7 @@ class Tile:
     values = ["1", "2", "3", "4", "5", "6", "7", "8", "9",
               "red", "white", "green",  # dragons
               "east", "south", "north", "west"]  # winds
+    # Let flowers 1-4 be flowers and flowers 5-8 be seasons
 
     def __init__(self, suit: str, value: str) -> None:
         self.suit = suit

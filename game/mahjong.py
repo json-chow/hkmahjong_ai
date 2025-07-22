@@ -9,7 +9,7 @@ if typing.TYPE_CHECKING:
 
 
 NUM_PLAYERS = 4
-WINDS = ["E", "S", "W", "N"]
+WINDS = ["east", "south", "west", "north"]
 
 
 class MahjongGame:
@@ -22,7 +22,7 @@ class MahjongGame:
         self.current_player = 0  # idx into self.players
         self.first = True  # flag the very first turn
         self.discard = False  # skip drawing a tile
-        self.draw = False
+        self.draw = False  # indicates if the game ends in a draw
         self.done = False
 
         # deal 14 tiles to dealer, 13 tiles to others

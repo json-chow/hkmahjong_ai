@@ -1,12 +1,12 @@
 import pytest
-from game.utils import check_win, check_kong, check_pung, check_chow
+from game.utils import check_win, check_kong, check_pung, check_chow, score_hand
 from game.tile import Tile
 from game.player import Player
 
 
 @pytest.fixture
 def p1():
-    return Player(1, "E")
+    return Player(1, "east")
 
 
 def test_check_kong_exposed(p1):
@@ -121,3 +121,19 @@ def test_check_not_chow(p1):
     t3 = Tile("dot", "4")
     p1.hand = [t1, t2, t3]
     assert not check_chow(p1, t2, True)
+
+
+def test_score_hand1(p1):
+    t1 = [Tile("bamboo", "1")]
+    t2 = [Tile("bamboo", "2")]
+    t3 = [Tile("bamboo", "3")]
+    t4 = [Tile("dragon", "red")]
+    t5 = [Tile("wind", "west")]
+    p1.melds = [t1 + t2 + t3] * 3 + [t4 * 3] + [t5 * 2]
+    state = {
+        "round_wind": "east",
+        "win_condition": ["self_pick"],
+        "thirteen_orphans": False,
+        "nine_gates": False
+    }
+    assert score_hand(p1, state) == 3+1+1+1  # half flush, self pick, red dragon, common hand
