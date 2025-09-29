@@ -31,7 +31,7 @@ class Player:
         self.discards.append(discarded_tile)
         return discarded_tile
 
-    def query_meld(self, type: str, options: list[list[Tile]] | list[list[list[Tile]]]) -> str:
+    def query_meld(self, type: str, options: list[list[Tile]]) -> str:
         '''Manual melding performed by human player'''
         print(f"Player {self.id}, you have a potential {type}")
         print("0: Skip")
@@ -39,19 +39,12 @@ class Player:
             print(f"{i}: {options[i-1]}")
         return input("Choice: ")
 
-    def perform_meld(self, to_meld: list[list[Tile]] | list[Tile]) -> None:
-        if isinstance(to_meld[0], list):
-            # Perform win
-            to_meld = typing.cast(list[list[Tile]], to_meld)
-            for meld in to_meld:
-                for tile in meld:
-                    self.hand.remove(tile)
-                self.melds.append(meld)
-        else:
-            # Kongs, chows, pungs
-            for tile in to_meld:
-                self.hand.remove(tile)
-            self.melds.append(to_meld)
+    def perform_meld(self, to_meld: list[list[Tile]]) -> None:
+        # Perform each meld
+        for tile in to_meld:
+            self.hand.remove(tile)
+        self.melds.append(to_meld)
+        # TODO: exposed pung --> kong
 
     def __str__(self) -> str:
         return str(self.id)

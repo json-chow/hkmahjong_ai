@@ -17,7 +17,7 @@ FAAN = {
     "great_winds": 10,
     "thirteen_orphans": 13,
     "eighteen_arhats": 10,
-    "orphans": 7,
+    "orphans": 10,
     "nine_gates": 10,
     # Extra based on melds
     "seat_wind": 1,
@@ -25,14 +25,14 @@ FAAN = {
     "dragon": 1,
     "mixed_orphans": 1,
     # Extra based on win condition
-    "self_pick": 1,
-    "concealed_hand": 1,
-    "rob_kong": 1,
-    "last_draw": 1,
-    "win_by_kong": 1,
-    "win_by_double_kong": 8,
-    "heavenly_hand": 13,
-    "earthly_hand": 13,
+    "self_pick": 1,  #
+    "concealed_hand": 1,  #
+    "rob_kong": 1,  #
+    "last_draw": 1,  #
+    "win_by_kong": 1,  #
+    "win_by_double_kong": 8,  #
+    "heavenly_hand": 13,  #
+    "earthly_hand": 13,  #
     # Extra based on flowers
     "no_flowers": 1,
     "own_flower": 1,
@@ -67,70 +67,8 @@ def init_wall(seed: int | None = None) -> list[Tile]:
     return wall
 
 
-def precompute_wins():
-    '''
-    Precomputes winning tile combinations, doesn't include special combos
-    Will probably stay unused since there are so many combos, faster to just use check_win()
-    '''
-    tile_counts = Counter(init_wall())
-    # Remove flowers
-    for i in range(1, 9):
-        tile_counts.pop(Tile("flower", str(i)))
-    # Check over all possible pairs
-    combos = set()
-    for tile in tile_counts:
-        print(tile, len(combos))
-        current_combo = [[tile]*2]
-        tile_counts[tile] -= 2
-        # Check through all combos via backtracking
-        _precompute(current_combo, combos, tile_counts, 0)
-        tile_counts[tile] += 2
-    return combos
-
-
-def _precompute(current: list[list[Tile]], res: set[tuple[tuple[Tile, ...], ...]], tile_counts: Counter, idx: int) -> None:
-    '''Helper function for precompute_wins*()'''
-    if len(current) == 5:  # 4 combos and a pair
-        res.add(tuple(tuple(meld) for meld in current))
-        return
-
-    for tile_idx in range(idx, len(tile_counts)):
-        tile = list(tile_counts.keys())[tile_idx]
-        # Check for kongs
-        if tile_counts[tile] == 4:
-            tile_counts[tile] -= 4
-            current.append([tile]*4)
-            _precompute(current, res, tile_counts, tile_idx)
-            current.pop()
-            tile_counts[tile] += 4
-
-        # Check for pungs
-        if tile_counts[tile] >= 3:
-            tile_counts[tile] -= 3
-            current.append([tile]*3)
-            _precompute(current, res, tile_counts, tile_idx)
-            current.pop()
-            tile_counts[tile] += 3
-
-        # Check for chows
-        if tile.suit in Tile.suits[:3] and int(tile.value) <= 7:
-            t2 = Tile(tile.suit, str(int(tile.value)+1))
-            t3 = Tile(tile.suit, str(int(tile.value)+2))
-            if tile_counts[t2] > 0 and tile_counts[t3] > 0:
-                tile_counts[tile] -= 1
-                tile_counts[t2] -= 1
-                tile_counts[t3] -= 1
-                current.append([tile, t2, t3])
-                _precompute(current, res, tile_counts, tile_idx)
-                current.pop()
-                tile_counts[tile] += 1
-                tile_counts[t2] += 1
-                tile_counts[t3] += 1
-
-
-def score_hand(player: Player, state: dict) -> int:
-    '''Given a player's winning hand, return the number of faan'''
-    melds = player.melds
+def score_hand(melds: list[list[Tile]], state: dict) -> int:
+    '''Given melds and game state, return the number of faan'''
     score = 0
     suits = set()
     flowers = []
@@ -147,7 +85,7 @@ def score_hand(player: Player, state: dict) -> int:
         if meld[0].suit == "flower":
             flowers.append(meld[0])
             flower_val = int(meld[0].value)
-            if flower_val >= 5:  # season
+            if flower_val >= 5:  # seasons are flower tiles w/values 5 to 8
                 all_seasons[flower_val - 5] = 1
             else:  # flower
                 all_flowers[flower_val - 1] = 1
@@ -175,6 +113,7 @@ def score_hand(player: Player, state: dict) -> int:
             # Orphan condition for pairs as well
             if meld[0].value not in {"1", "9"} and meld[0].suit not in {"dragon", "wind"}:
                 orphan = False
+            continue  # don't go through honor meld logics if meld is a pair
 
         # Deal with honor melds
         if meld[0].suit == "dragon":
@@ -185,7 +124,7 @@ def score_hand(player: Player, state: dict) -> int:
             if meld[0].value == state["round_wind"]:
                 score += FAAN["round_wind"]
             # Seat wind
-            if meld[0].value == player.seat_wind:
+            if meld[0].value == state["seat_wind"]:
                 score += FAAN["seat_wind"]
 
     # No flowers
@@ -194,7 +133,7 @@ def score_hand(player: Player, state: dict) -> int:
     # Own flower
     pos_to_wind = {1: "east", 2: "south", 3: "west", 4: "north"}
     for flower in flowers:
-        if pos_to_wind[((int(flower.value) - 1) % 4) + 1] == player.seat_wind:
+        if pos_to_wind[((int(flower.value) - 1) % 4) + 1] == state["seat_wind"]:
             score += FAAN["own_flower"]
     # All flower or season tiles
     if all(all_flowers):
@@ -206,11 +145,11 @@ def score_hand(player: Player, state: dict) -> int:
     for win_condition in state["win_condition"]:
         score += FAAN[win_condition]
 
-    # Special hands (13 orphans, 9 gates, ...)
+    # Special hands (13 orphans, 9 gates, ...) [max points]
     if state["thirteen_orphans"]:
-        return score + FAAN["thirteen_orphans"]
+        return FAAN["thirteen_orphans"]
     if state["nine_gates"]:
-        return score + FAAN["nine_gates"]
+        return FAAN["nine_gates"]
 
     # Common hand
     if pungs == 0 and kongs == 0:
@@ -262,11 +201,22 @@ def score_hand(player: Player, state: dict) -> int:
             score += FAAN["orphans"]
 
     score += dragons  # 1 point per dragon
-    return score
+    return min(score, 13)  # 13 faan is max
 
 
-def check_win(player: Player, tile: Tile | None, current_player: bool) -> list[list[list[Tile]]]:
-    '''Checks if the player has either a self-draw win or a win by discard'''
+def check_win(player: Player, tile: Tile | None, current_player: bool) -> tuple[list[list[Tile]], dict]:
+    '''
+    Checks if the player has either a self-draw win or a win by discard
+    Returns the highest scoring meld combination that can be used to win
+    '''
+    state = {
+        "win_condition": [],
+        "thirteen_orphans": False,
+        "nine_gates": False,
+        "seat_wind": player.seat_wind,
+        "round_wind": None
+    }
+
     # Count number of tiles in current hand
     tile_counts = Counter(player.hand)
 
@@ -274,6 +224,49 @@ def check_win(player: Player, tile: Tile | None, current_player: bool) -> list[l
     if not current_player:
         tile_counts[tile] += 1
     # ... otherwise, check for self-draw win -- check if current hand is a win
+    else:
+        state["win_condition"].append("self_pick")
+
+    if len(player.melds) == 0 or all(len(i) == 1 for i in player.melds):
+        # if no melds or all flower melds, then the current hand is concealed
+        state["win_condition"].append("concealed_hand")
+
+    # Check for thirteen orphans
+    thirteen_orphans = {
+        Tile("bamboo", "1"),
+        Tile("bamboo", "9"),
+        Tile("dot", "1"),
+        Tile("dot", "9"),
+        Tile("character", "1"),
+        Tile("character", "9"),
+        Tile("dragon", "red"),
+        Tile("dragon", "green"),
+        Tile("dragon", "white"),
+        Tile("wind", "east"),
+        Tile("wind", "west"),
+        Tile("wind", "south"),
+        Tile("wind", "north")
+    }
+    if thirteen_orphans.issubset(tile_counts):
+        # If all required tiles are in the hand, then it must be that the hand is a thirteen orphans
+        state["thirteen_orphans"] = True
+        return [player.hand], state
+
+    # Check for nine gates
+    if state["win_condition"]:
+        # Check if all tiles are of a single suit
+        if len(set(tile.suit for tile in player.hand)) == 1:
+            suit = player.hand[0].suit
+            # Check if each number of the suit is in the hand
+            for val in range(1, 10):
+                if Tile(suit, str(val)) not in player.hand:
+                    break
+            else:
+                # Check if there are three of 1 and three of 9 in the hand
+                if len([tile for tile in player.hand if tile.value == "1"]) == 3 and \
+                   len([tile for tile in player.hand if tile.value == "9"]) == 3:
+                    state["nine_gates"] = True
+                    return [player.hand], state
 
     possible_wins = []
     for tile in tile_counts:
@@ -285,8 +278,8 @@ def check_win(player: Player, tile: Tile | None, current_player: bool) -> list[l
                 for meld in melds:
                     possible_wins.append(meld + [[tile]*2])
             tile_counts[tile] += 2
-    # Check for thirteen orphans
-    return possible_wins
+    best_win = max(possible_wins, key=lambda x: score_hand(x, state)) if possible_wins else []
+    return best_win, state
 
 
 def _check_meld(tile_counts: Counter) -> tuple[bool, list[list[list[Tile]]]]:
@@ -335,15 +328,18 @@ def _check_meld(tile_counts: Counter) -> tuple[bool, list[list[list[Tile]]]]:
     return bool(melds), melds
 
 
-def check_kong(player: Player, tile: Tile, current_player: bool) -> list[list[Tile]]:
+def check_kong(player: Player, tile: Tile | None, current_player: bool) -> list[list[Tile]]:
     '''Checks if the given tile can be used by player to form a kong'''
+    if not tile:
+        return []
     # Check if a kong can be formed from an exposed pung
     if current_player:
         if [tile] * 3 in player.melds:
             return [[tile] * 4]
-        # Check if a kong can be formed from a concealed pung
-        if player.hand.count(tile) == 4:
-            return [[tile] * 4]
+        # # Check if a kong can be formed from a concealed pung
+        # # Not necessary, since concealed kong doesn't need to be announced
+        # if player.hand.count(tile) == 4:
+        #     return [[tile] * 4]
     else:
         if player.hand.count(tile) == 3:
             return [[tile] * 4]
