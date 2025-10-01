@@ -63,6 +63,20 @@ def test_check_win_discard(p1):
     assert set(tuple(i) for i in w) == set(tuple(i) for i in ref)
 
 
+def test_check_win_discard2(p1):
+    t1 = [Tile("dot", "1")]
+    t2 = [Tile("dot", "2")]
+    t3 = [Tile("dot", "3")]
+    t4 = [Tile("dragon", "red")]
+    t5 = [Tile("wind", "west")]
+    t6 = [Tile("bamboo", "1")]
+    hand = t1 * 2 + t2 * 1 + t3 * 2 + t4 * 4 + t5 * 4 + t6 * 2
+    p1.hand = hand
+    w, s = check_win(p1, t2[0], False)
+    ref = [t1 + t2 + t3]*2 + [t4*4] + [t5*4] + [t6*2]
+    assert set(tuple(i) for i in w) == set(tuple(i) for i in ref)
+
+
 def test_check_pung_cp(p1):
     t1 = Tile("dot", "1")
     p1.hand = [t1] * 3

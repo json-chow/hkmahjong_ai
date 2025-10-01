@@ -39,7 +39,7 @@ class Player:
             print(f"{i}: {options[i-1]}")
         return input("Choice: ")
 
-    def perform_meld(self, to_meld: list[list[Tile]]) -> None:
+    def perform_meld(self, to_meld: list[Tile]) -> None:
         # Perform each meld
         for tile in to_meld:
             self.hand.remove(tile)

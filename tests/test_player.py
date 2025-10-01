@@ -27,6 +27,6 @@ def test_perform_meld(p1):
     t4 = [Tile("dragon", "red")]
     t5 = [Tile("wind", "west")]
     p1.hand = t1 * 3 + t2 * 3 + t3 * 3 + t4 * 3 + t5 * 2
-    p1.perform_meld([t3*3])
+    p1.perform_meld(t3*3)
     assert p1.hand == t1 * 3 + t2 * 3 + t4 * 3 + t5 * 2
     assert p1.melds == [t3*3]

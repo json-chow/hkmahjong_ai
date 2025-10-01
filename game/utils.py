@@ -62,8 +62,8 @@ def init_wall(seed: int | None = None) -> list[Tile]:
         tile = Tile("flower", value)
         wall.append(tile)
 
-    random.seed(seed)
-    random.shuffle(wall)
+    rng = random.Random(seed)
+    rng.shuffle(wall)
     return wall
 
 
@@ -80,6 +80,8 @@ def score_hand(melds: list[list[Tile]], state: dict) -> int:
     all_flowers = [0, 0, 0, 0]
     all_seasons = [0, 0, 0, 0]
     orphan = True  # tracks if hand contains 1s and 9s and honors only
+    pair = None
+
     for meld in melds:
         # Deal with flower 'melds'
         if meld[0].suit == "flower":
@@ -178,14 +180,14 @@ def score_hand(melds: list[list[Tile]], state: dict) -> int:
         if dragons == 3:
             score += FAAN["great_dragons"]
         # Small dragons
-        elif (dragons == 2) and (pair.suit == "dragon"):
+        elif (dragons == 2) and (pair and pair.suit == "dragon"):
             score += FAAN["small_dragons"]
 
         # Great winds
         if winds == 4:
             score += FAAN["great_winds"]
         # Small winds
-        elif (winds == 3) and (pair.suit == "wind"):
+        elif (winds == 3) and (pair and pair.suit == "wind"):
             score += FAAN["small_winds"]
 
         # Terminals + honors
@@ -298,7 +300,8 @@ def _check_meld(tile_counts: Counter) -> tuple[bool, list[list[list[Tile]]]]:
         tile_counts[tile] -= 4
         status, other_melds = _check_meld(tile_counts)
         if status:
-            melds.append(other_melds + [tile]*4)
+            for meld in other_melds:
+                melds.append(meld + [[tile]*4])
         tile_counts[tile] += 4
 
     # Check for pungs

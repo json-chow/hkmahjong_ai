@@ -94,7 +94,7 @@ class MahjongGame:
         # Check current player for kong (from exposed pung)
         kong_meld = check_kong(player, tile, True)
         if kong_meld:
-            opt = player.query_meld("kong", kong_meld)
+            opt = int(player.query_meld("kong", kong_meld))
             if opt:
                 # Check if other players can rob the kong
                 for i in range(1, NUM_PLAYERS):
@@ -112,7 +112,7 @@ class MahjongGame:
                             self.done = True
                             return
                 # Otherwise, draw replacement tile
-                player.perform_meld(kong_meld)
+                player.perform_meld(kong_meld[opt-1])
                 print(f"Drawing replacement tile for player {player.id}")
                 self.discard = False
                 self.kong = True
