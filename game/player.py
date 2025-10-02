@@ -7,6 +7,11 @@ if typing.TYPE_CHECKING:
 
 
 class Player:
+    id: int
+    hand: list[Tile]
+    melds: list[list[Tile]]
+    discards: list[Tile]
+    seat_wind: str
 
     def __init__(self, id: int, wind: str) -> None:
         self.id = id

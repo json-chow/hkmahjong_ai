@@ -2,6 +2,7 @@ from game.tile import Tile
 from game.player import Player
 import random
 from collections import Counter
+from typing import TypedDict
 
 
 FAAN = {
@@ -40,6 +41,14 @@ FAAN = {
 }
 
 
+class StateDict(TypedDict):
+    win_condition: list[str]
+    thirteen_orphans: bool
+    nine_gates: bool
+    seat_wind: str
+    round_wind: str | None
+
+
 def init_wall(seed: int | None = None) -> list[Tile]:
     '''Initializes and shuffles the mahjong wall'''
     wall = []
@@ -67,7 +76,7 @@ def init_wall(seed: int | None = None) -> list[Tile]:
     return wall
 
 
-def score_hand(melds: list[list[Tile]], state: dict) -> int:
+def score_hand(melds: list[list[Tile]], state: StateDict) -> int:
     '''Given melds and game state, return the number of faan'''
     score = 0
     suits = set()
@@ -206,12 +215,13 @@ def score_hand(melds: list[list[Tile]], state: dict) -> int:
     return min(score, 13)  # 13 faan is max
 
 
-def check_win(player: Player, tile: Tile | None, current_player: bool) -> tuple[list[list[Tile]], dict]:
+def check_win(player: Player, tile: Tile | None, current_player: bool) -> tuple[list[list[Tile]], StateDict]:
     '''
     Checks if the player has either a self-draw win or a win by discard
     Returns the highest scoring meld combination that can be used to win
     '''
-    state = {
+
+    state: StateDict = {
         "win_condition": [],
         "thirteen_orphans": False,
         "nine_gates": False,
@@ -223,7 +233,7 @@ def check_win(player: Player, tile: Tile | None, current_player: bool) -> tuple[
     tile_counts = Counter(player.hand)
 
     # Check for win by discard -- check if tile can be used to win
-    if not current_player:
+    if not current_player and tile:
         tile_counts[tile] += 1
     # ... otherwise, check for self-draw win -- check if current hand is a win
     else:

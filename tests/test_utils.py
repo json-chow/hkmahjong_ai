@@ -1,5 +1,5 @@
 import pytest
-from game.utils import check_win, check_kong, check_pung, check_chow, score_hand
+from game.utils import check_win, check_kong, check_pung, check_chow, score_hand, StateDict
 from game.tile import Tile
 from game.player import Player
 
@@ -122,7 +122,7 @@ def test_score_hand1():
     t5 = [Tile("wind", "west")]
     t6 = [Tile("flower", "5")]
     melds = [t1 + t2 + t3] * 3 + [t4 * 3] + [t5 * 2] + [t6]
-    state = {
+    state: StateDict = {
         "round_wind": "east",
         "seat_wind": "east",
         "win_condition": ["self_pick"],
@@ -139,7 +139,7 @@ def test_score_hand2():
     t4 = [Tile("bamboo", "4")]
     t5 = [Tile("bamboo", "5")]
     melds = [t1*3] + [t2*3] + [t3*4] + [t4*4] + [t5 * 2]
-    state = {
+    state: StateDict = {
         "round_wind": "east",
         "seat_wind": "east",
         "win_condition": ["self_pick", "last_draw"],
@@ -157,7 +157,7 @@ def test_score_hand3():
     t5 = [Tile("wind", "east")]
     t6 = [Tile("flower", "6")]
     melds = [t1 * 3] + [t2 + t3 + t4] * 2 + [t5 * 3] + [t4 * 2] + [t6]
-    state = {
+    state: StateDict = {
         "round_wind": "east",
         "seat_wind": "east",
         "win_condition": [],
@@ -184,7 +184,7 @@ def test_score_thirteen_orphans():
         [Tile("wind", "north")],
         [Tile("wind", "north")]
     ]
-    state = {
+    state: StateDict = {
         "round_wind": "east",
         "seat_wind": "east",
         "win_condition": ["concealed_hand"],
@@ -201,7 +201,7 @@ def test_score_mixed_orphans():
     t4 = [Tile("dragon", "red")]
     t5 = [Tile("wind", "west")]
     melds = [t1 * 3] + [t2 * 3] + [t3 * 3] + [t4 * 3] + [t5 * 2]
-    state = {
+    state: StateDict = {
         "round_wind": "east",
         "seat_wind": "east",
         "win_condition": [],
@@ -218,7 +218,7 @@ def test_score_orphans():
     t4 = [Tile("bamboo", "9")]
     t5 = [Tile("character", "1")]
     melds = [t1 * 3] + [t2 * 3] + [t3 * 3] + [t4 * 3] + [t5 * 2]
-    state = {
+    state: StateDict = {
         "round_wind": "east",
         "seat_wind": "east",
         "win_condition": [],

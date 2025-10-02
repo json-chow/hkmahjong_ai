@@ -30,7 +30,9 @@ class Tile:
             else:
                 return False
 
-    def __eq__(self, other: "Tile") -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Tile):
+            return NotImplemented
         return self.suit == other.suit and self.value == other.value
 
     def __hash__(self) -> int:
