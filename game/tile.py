@@ -11,6 +11,8 @@ class Tile:
         self.value = value
 
     def __str__(self) -> str:
+        if self.suit == "flower":
+            return f"{(int(self.value) - 1) % 4 + 1}_flower"
         return self.value + "_" + self.suit
 
     def __repr__(self) -> str:

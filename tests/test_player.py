@@ -1,11 +1,11 @@
 import pytest
-from game.player import Player
+from game.player import HumanPlayer
 from game.tile import Tile
 
 
 @pytest.fixture
 def p1():
-    return Player(1, "east")
+    return HumanPlayer(1, "east")
 
 
 def test_discard_tile(p1):
@@ -15,7 +15,7 @@ def test_discard_tile(p1):
     t4 = [Tile("dragon", "red")]
     t5 = [Tile("wind", "west")]
     p1.hand = t1 * 3 + t2 * 3 + t3 * 3 + t4 * 3 + t5 * 2
-    p1.discard_tile(4)
+    p1.query_discard(idx=4)
     assert p1.hand == t1 * 3 + t2 * 2 + t3 * 3 + t4 * 3 + t5 * 2
     assert p1.discards == t2
 

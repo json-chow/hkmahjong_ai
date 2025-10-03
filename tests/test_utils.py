@@ -1,12 +1,12 @@
 import pytest
 from game.utils import check_win, check_kong, check_pung, check_chow, score_hand, StateDict
 from game.tile import Tile
-from game.player import Player
+from game.player import HumanPlayer
 
 
 @pytest.fixture
 def p1():
-    return Player(1, "east")
+    return HumanPlayer(1, "east")
 
 
 def test_check_kong_exposed(p1):
