@@ -1,5 +1,4 @@
 from game.tile import Tile
-from game.player import Player
 import random
 from collections import Counter
 from typing import TypedDict
@@ -41,12 +40,33 @@ FAAN = {
 }
 
 
-class StateDict(TypedDict):
+class HandStateDict(TypedDict):
     win_condition: list[str]
     thirteen_orphans: bool
     nine_gates: bool
     seat_wind: str
     round_wind: str | None
+
+
+class PlayerStateDict(TypedDict):
+    id: int
+    seat_wind: str
+    hand: list[Tile]
+    melds: list[list[Tile]]
+    discards: list[Tile]
+
+
+class GameStateDict(TypedDict):
+    wall: list[Tile]
+    round_wind: str
+    current_player: int
+    first: bool
+    discard: bool
+    kong: bool
+    double_kong: bool
+    draw: bool
+    done: bool
+    players: dict[int, PlayerStateDict]
 
 
 def init_wall(seed: int | None = None) -> list[Tile]:
@@ -76,7 +96,7 @@ def init_wall(seed: int | None = None) -> list[Tile]:
     return wall
 
 
-def score_hand(melds: list[list[Tile]], state: StateDict) -> int:
+def score_hand(melds: list[list[Tile]], state: HandStateDict) -> int:
     '''Given melds and game state, return the number of faan'''
     score = 0
     suits = set()
@@ -215,22 +235,22 @@ def score_hand(melds: list[list[Tile]], state: StateDict) -> int:
     return min(score, 13)  # 13 faan is max
 
 
-def check_win(player: Player, tile: Tile | None, current_player: bool) -> tuple[list[list[Tile]], StateDict]:
+def check_win(p_state: PlayerStateDict, tile: Tile | None, current_player: bool) -> tuple[list[list[Tile]], HandStateDict]:
     '''
     Checks if the player has either a self-draw win or a win by discard
     Returns the highest scoring meld combination that can be used to win
     '''
 
-    state: StateDict = {
+    state: HandStateDict = {
         "win_condition": [],
         "thirteen_orphans": False,
         "nine_gates": False,
-        "seat_wind": player.seat_wind,
+        "seat_wind": p_state["seat_wind"],
         "round_wind": None
     }
 
     # Count number of tiles in current hand
-    tile_counts = Counter(player.hand)
+    tile_counts = Counter(p_state["hand"])
 
     # Check for win by discard -- check if tile can be used to win
     if not current_player and tile:
@@ -239,7 +259,7 @@ def check_win(player: Player, tile: Tile | None, current_player: bool) -> tuple[
     else:
         state["win_condition"].append("self_pick")
 
-    if len(player.melds) == 0 or all(len(i) == 1 for i in player.melds):
+    if len(p_state["melds"]) == 0 or all(len(i) == 1 for i in p_state["melds"]):
         # if no melds or all flower melds, then the current hand is concealed
         state["win_condition"].append("concealed_hand")
 
@@ -262,23 +282,23 @@ def check_win(player: Player, tile: Tile | None, current_player: bool) -> tuple[
     if thirteen_orphans.issubset(tile_counts):
         # If all required tiles are in the hand, then it must be that the hand is a thirteen orphans
         state["thirteen_orphans"] = True
-        return [player.hand], state
+        return [p_state["hand"]], state
 
     # Check for nine gates
     if state["win_condition"]:
         # Check if all tiles are of a single suit
-        if len(set(tile.suit for tile in player.hand)) == 1:
-            suit = player.hand[0].suit
+        if len(set(tile.suit for tile in p_state["hand"])) == 1:
+            suit = p_state["hand"][0].suit
             # Check if each number of the suit is in the hand
             for val in range(1, 10):
-                if Tile(suit, str(val)) not in player.hand:
+                if Tile(suit, str(val)) not in p_state["hand"]:
                     break
             else:
                 # Check if there are three of 1 and three of 9 in the hand
-                if len([tile for tile in player.hand if tile.value == "1"]) == 3 and \
-                   len([tile for tile in player.hand if tile.value == "9"]) == 3:
+                if len([tile for tile in p_state["hand"] if tile.value == "1"]) == 3 and \
+                   len([tile for tile in p_state["hand"] if tile.value == "9"]) == 3:
                     state["nine_gates"] = True
-                    return [player.hand], state
+                    return [p_state["hand"]], state
 
     possible_wins = []
     for tile in tile_counts:
@@ -341,42 +361,38 @@ def _check_meld(tile_counts: Counter) -> tuple[bool, list[list[list[Tile]]]]:
     return bool(melds), melds
 
 
-def check_kong(player: Player, tile: Tile | None, current_player: bool) -> list[list[Tile]]:
+def check_kong(p_state: PlayerStateDict, tile: Tile | None, current_player: bool) -> list[list[Tile]]:
     '''Checks if the given tile can be used by player to form a kong'''
     if not tile:
         return []
     # Check if a kong can be formed from an exposed pung
     if current_player:
-        if [tile] * 3 in player.melds:
+        if [tile] * 3 in p_state["melds"]:
             return [[tile] * 4]
-        # # Check if a kong can be formed from a concealed pung
-        # # Not necessary, since concealed kong doesn't need to be announced
-        # if player.hand.count(tile) == 4:
-        #     return [[tile] * 4]
     else:
-        if player.hand.count(tile) == 3:
+        if p_state["hand"].count(tile) == 3:
             return [[tile] * 4]
     return []
 
 
-def check_pung(player: Player, tile: Tile, current_player: bool) -> list[list[Tile]]:
+def check_pung(p_state: PlayerStateDict, tile: Tile, current_player: bool) -> list[list[Tile]]:
     '''Checks if the given tile can be used by player to form a pung'''
     if current_player:
-        if player.hand.count(tile) == 3:
+        if p_state["hand"].count(tile) == 3:
             return [[tile] * 3]
     else:
-        if player.hand.count(tile) == 2:
+        if p_state["hand"].count(tile) == 2:
             return [[tile] * 3]
     return []
 
 
-def check_chow(player: Player, tile: Tile, current_player: bool) -> list[list[Tile]]:
+def check_chow(p_state: PlayerStateDict, tile: Tile, current_player: bool) -> list[list[Tile]]:
     '''Checks if the given tile can be used by player to form a chow'''
     # Suit must be dots, bamboo, or characters
     if tile.suit not in Tile.suits[:3]:
         return []
 
-    hand = player.hand.copy()
+    hand = p_state["hand"].copy()
     # If not current player, pretend tile is in hand
     if not current_player:
         hand.append(tile)
