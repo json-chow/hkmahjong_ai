@@ -69,21 +69,44 @@ class MahjongGame:
             else:
                 player_state["hand"].append(tile)
                 return tile
+        return None
 
     def step(self) -> None:
         '''Initiates one turn of the game'''
         # Check for draw
+        if self.check_game_draw():
+            return
+
+        p_id = self.game_state["current_player"]
+
+        # Check for heavenly hand
+        if self.check_heavenly_hand(p_id):
+            return
+
+        tile = self.deal_tile_step(p_id)
+
+        if self.check_current_player_options(p_id, tile):
+            return
+
+        discarded_tile = self.discard_tile_step(p_id)
+
+        if self.resolve_other_actions(discarded_tile, p_id):  # don't want to change current player if action taken
+            return
+
+        self.prepare_next_turn(p_id)
+
+    def check_game_draw(self) -> bool:
         if not self.game_state["wall"]:
             print("Draw")
             self.game_state["done"] = True
             self.game_state["draw"] = True
-            return
+            return True
+        return False
 
-        p_id = self.game_state["current_player"]
+    def check_heavenly_hand(self, p_id: int) -> bool:
         player = self.players[p_id]
         player_state = self.game_state["players"][p_id]
 
-        # Check for heavenly hand
         if self.game_state["first"]:
             win_melds, state = check_win(player_state, None, True)
             if win_melds:
@@ -93,13 +116,19 @@ class MahjongGame:
                     state["round_wind"] = self.game_state["round_wind"]
                     state["win_condition"].append("heavenly_hand")
                     self.game_state["done"] = True
-                    return
+                    return True
+        return False
 
-        # Player draws tile
+    def deal_tile_step(self, p_id: int) -> Tile | None:
         tile = None
         if not self.game_state["first"] and not self.game_state["discard"]:
             tile = self.deal_tile(p_id)
             print(f"Player {p_id} draws {tile}")
+        return tile
+
+    def check_current_player_options(self, p_id: int, tile: Tile | None) -> bool:
+        player = self.players[p_id]
+        player_state = self.game_state["players"][p_id]
 
         # Check current player for win (self draw win)
         win_melds, state = check_win(player_state, tile, True)
@@ -116,44 +145,60 @@ class MahjongGame:
                     else:
                         state["win_condition"].append("win_by_kong")
                 self.game_state["done"] = True
-                return
+                return True
         # Check current player for kong (from exposed pung)
         kong_meld = check_kong(player_state, tile, True)
         if kong_meld:
             opt = player.query_meld(self.game_state, "kong", kong_meld)
             if opt:
                 # Check if other players can rob the kong
-                for i in range(1, NUM_PLAYERS):
-                    next_player_idx = (p_id + i) % NUM_PLAYERS
-                    next_player = self.players[next_player_idx]
-                    next_player_state = self.game_state["players"][next_player_idx]
-                    rob_kong_meld, state = check_win(next_player_state, tile, False)
-                    if rob_kong_meld:
-                        rob_kong_opt = next_player.query_meld(self.game_state, "win", rob_kong_meld)
-                        if rob_kong_opt:
-                            print(f"Player {next_player_idx} wins")
-                            state["round_wind"] = self.game_state["round_wind"]
-                            state["win_condition"].append("rob_kong")
-                            if not self.game_state["wall"]:
-                                state["win_condition"].append("last_draw")
-                            self.game_state["done"] = True
-                            return
+                self.check_rob_kong(tile, p_id)
                 # Otherwise, draw replacement tile
-                print(kong_meld[opt-1])
                 self.perform_meld(p_id, kong_meld[opt-1])
-                print(f"Drawing replacement tile for player {p_id}")
-                self.game_state["discard"] = False
-                self.game_state["kong"] = True
-                return
+                print(f"Player {p_id} has performed a kong")
+                if self.game_state["kong"]:  # already had a kong this turn
+                    self.game_state["double_kong"] = True
+                self.set_draw_replacement_after_kong(p_id)
+                return True
+        return False
 
-        # Player discards tile
+    def check_rob_kong(self, discarded_tile: Tile | None, p_id: int) -> None:
+        '''Check if any other player can rob the kong of player p_id'''
+        for i in range(1, NUM_PLAYERS):
+            next_player_idx = (p_id + i) % NUM_PLAYERS
+            next_player = self.players[next_player_idx]
+            next_player_state = self.game_state["players"][next_player_idx]
+            rob_kong_meld, state = check_win(next_player_state, discarded_tile, False)
+            if rob_kong_meld:
+                rob_kong_opt = next_player.query_meld(self.game_state, "win", rob_kong_meld)
+                if rob_kong_opt:
+                    print(f"Player {next_player_idx} wins")
+                    state["round_wind"] = self.game_state["round_wind"]
+                    state["win_condition"].append("rob_kong")
+                    if not self.game_state["wall"]:
+                        state["win_condition"].append("last_draw")
+                    self.game_state["done"] = True
+
+    def set_draw_replacement_after_kong(self, p_id) -> None:
+        '''Set the game state to draw a replacement tile after a kong for player p_id'''
+        print(f"Drawing replacement tile for player {p_id}")
+        self.game_state["discard"] = False
+        self.game_state["kong"] = True
+
+    def discard_tile_step(self, p_id: int) -> Tile:
+        player = self.players[p_id]
+        player_state = self.game_state["players"][p_id]
+
         self.print_player_info(p_id)
         discard_idx = player.query_discard(self.game_state, True)  # decision point: what to discard?
         discarded_tile = player_state["hand"].pop(discard_idx)
         player_state["discards"].append(discarded_tile)
         print(f"Player {p_id} discarded {discarded_tile}")
         self.game_state["discard"] = False
+        return discarded_tile
 
+    def resolve_other_actions(self, discarded_tile: Tile, p_id: int) -> bool:
+        player_state = self.game_state["players"][p_id]
         # Resolve potential actions from other players
         for i in range(1, NUM_PLAYERS):
             next_player_idx = (p_id + i) % NUM_PLAYERS
@@ -171,24 +216,24 @@ class MahjongGame:
                     if not self.game_state["wall"]:
                         state["win_condition"].append("last_draw")
                     self.game_state["done"] = True
-                    return
+                    return True
 
             # Check for kongs
             kong_meld = check_kong(next_player_state, discarded_tile, False)
             if kong_meld:
                 opt = next_player.query_meld(self.game_state, "kong", kong_meld)  # decision point: whether to kong
                 if opt:
+                    # Check if other players can rob the kong
+                    if [discarded_tile] * 3 in kong_meld:  # only if it's an added kong:
+                        self.check_rob_kong(discarded_tile, next_player_idx)
                     next_player_state["hand"].append(player_state["discards"].pop())  # add discarded tile to hand
                     self.perform_meld(next_player_idx, kong_meld[opt-1])
                     print(f"Player {next_player_idx} has performed a kong")
-                    self.game_state["discard"] = True
                     self.game_state["current_player"] = next_player_idx
-                    print(f"Drawing replacement tile for player {next_player_idx}")
-                    self.game_state["discard"] = False
                     if self.game_state["kong"]:  # already had a kong this turn
                         self.game_state["double_kong"] = True
-                    self.game_state["kong"] = True
-                    return
+                    self.set_draw_replacement_after_kong(next_player_idx)
+                    return True
 
             # Check for pungs
             pung_meld = check_pung(next_player_state, discarded_tile, False)
@@ -204,7 +249,7 @@ class MahjongGame:
                     self.game_state["double_kong"] = False
                     if self.game_state["first"]:
                         self.game_state["first"] = False
-                    return
+                    return True
 
             # Check for chows (only next player can chow)
             if i == 1:
@@ -221,8 +266,10 @@ class MahjongGame:
                         self.game_state["double_kong"] = False
                         if self.game_state["first"]:
                             self.game_state["first"] = False
-                        return
+                        return True
+        return False
 
+    def prepare_next_turn(self, p_id: int) -> None:
         self.game_state["kong"] = False
         self.game_state["double_kong"] = False
         if self.game_state["first"]:
