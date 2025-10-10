@@ -39,6 +39,7 @@ class MahjongGame:
             "double_kong": False,  # for tracking win by double kong
             "draw": False,  # indicates if the game ends in a draw
             "done": False,
+            "winning_hand_state": None,
             "players": {
                 i: {
                     "id": i,
@@ -72,7 +73,11 @@ class MahjongGame:
         return None
 
     def step(self) -> None:
-        '''Initiates one turn of the game'''
+        '''
+        Initiates one turn of the game
+        tile draw, (meld forming), discard, (meld forming for others)
+        meld forming leads to another turn for that player where they will then discard
+        '''
         if self.check_game_draw():
             return
 
@@ -114,6 +119,7 @@ class MahjongGame:
                     state["round_wind"] = self.game_state["round_wind"]
                     state["win_condition"].append("heavenly_hand")
                     self.game_state["done"] = True
+                    self.game_state["winning_hand_state"] = state
                     return True
         return False
 
@@ -129,7 +135,7 @@ class MahjongGame:
         next_player = self.players[next_p_id]
         next_player_state = self.game_state["players"][next_p_id]
 
-        kong_meld = check_kong(next_player_state, tile, False)
+        kong_meld = check_kong(next_player_state, tile, p_id == next_p_id)
         if kong_meld:
             opt = next_player.query_meld(self.game_state, "kong", kong_meld)  # decision point: whether to kong
             if opt:
@@ -141,7 +147,7 @@ class MahjongGame:
                             return True
                     # add discarded tile to hand
                     next_player_state["hand"].append(player_state["discards"].pop())
-                else:
+                elif tile is not None:
                     # add drawn tile to hand
                     next_player_state["hand"].append(tile)
                 print(kong_meld[opt-1])
@@ -173,6 +179,7 @@ class MahjongGame:
                     else:
                         state["win_condition"].append("win_by_kong")
                 self.game_state["done"] = True
+                self.game_state["winning_hand_state"] = state
                 return True
 
         # Check current player for kong (from exposed pung)
@@ -196,6 +203,7 @@ class MahjongGame:
                     if not self.game_state["wall"]:
                         state["win_condition"].append("last_draw")
                     self.game_state["done"] = True
+                    self.game_state["winning_hand_state"] = state
                     return True
         return False
 
@@ -235,7 +243,10 @@ class MahjongGame:
                     state["win_condition"].append("win_by_discard")
                     if not self.game_state["wall"]:
                         state["win_condition"].append("last_draw")
+                    if self.game_state["first"]:
+                        state["win_condition"].append("earthly_hand")
                     self.game_state["done"] = True
+                    self.game_state["winning_hand_state"] = state
                     return True
 
             # Check for kongs

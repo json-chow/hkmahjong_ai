@@ -66,6 +66,7 @@ class GameStateDict(TypedDict):
     double_kong: bool
     draw: bool
     done: bool
+    winning_hand_state: HandStateDict | None
     players: dict[int, PlayerStateDict]
 
 

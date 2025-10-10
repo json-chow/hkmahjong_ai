@@ -49,6 +49,8 @@ class HumanPlayer(Player):
 class RandomAIPlayer(Player):
 
     def query_meld(self, state: GameStateDict, type: str, options: list[list[Tile]]) -> int:
+        if type == "win":
+            return 1  # always win
         return random.randint(0, len(options))
 
     def query_discard(self, state: GameStateDict, sorted_hand: bool = False) -> int:
