@@ -254,7 +254,7 @@ def check_win(p_state: PlayerStateDict, tile: Tile | None, current_player: bool)
     tile_counts = Counter(p_state["hand"])
 
     # Check for win by discard -- check if tile can be used to win
-    if not current_player and tile:
+    if tile and not current_player:
         tile_counts[tile] += 1
     # ... otherwise, check for self-draw win -- check if current hand is a win
     else:

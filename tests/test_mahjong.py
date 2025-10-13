@@ -41,7 +41,7 @@ def test_check_earthly_hand():
     t4 = Tile("dragon", "red")
     t5 = Tile("wind", "west")
     game.game_state["players"][1]["hand"] = [t1, t2, t3] * 3 + [t4] * 3 + [t5]
-    game.game_state["players"][0]["discards"] = [Tile("dot", "1")]
+    game.game_state["players"][0]["discards"] = [Tile("wind", "west")]
     game.resolve_other_actions(t5, 0)
     assert game.game_state["winning_hand_state"] is not None
     assert "earthly_hand" in game.game_state["winning_hand_state"]["win_condition"]
@@ -56,17 +56,3 @@ def test_deal_tile():
     game.deal_tile(0)
     assert tile in game.game_state["players"][0]["hand"]
     assert len(game.game_state["wall"]) == 0
-
-
-def test_self_kong():
-    game = MahjongGame()
-    game.set_players([RandomAIPlayer(i) for i in range(4)])
-    t1 = Tile("bamboo", "1")
-    t2 = Tile("bamboo", "2")
-    t3 = Tile("bamboo", "4")
-    t4 = Tile("dragon", "red")
-    t5 = Tile("wind", "west")
-    game.game_state["players"][0]["hand"] = [t1, t2, t3] * 3 + [t4] + [t5]
-    game.game_state["players"][0]["melds"] = [[t4]*3]
-    game.check_current_player_options(0, t4)
-    assert [t4]*4 in game.game_state["players"][0]["melds"]

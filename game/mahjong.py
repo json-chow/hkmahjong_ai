@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from game.utils import init_wall, check_win, check_kong, check_chow, check_pung, GameStateDict
+from game.utils import init_wall, check_win, check_kong, check_chow, check_pung, score_hand, GameStateDict
 from game.player import Player, HumanPlayer
 
 
@@ -50,7 +50,7 @@ class MahjongGame:
                 } for i in range(NUM_PLAYERS)
             }
         }
-        self.game_state["wall"] = init_wall()
+        self.game_state["wall"] = init_wall(self.seed)
 
         # deal 14 tiles to dealer, 13 tiles to others
         for i in range(NUM_PLAYERS):
@@ -112,15 +112,17 @@ class MahjongGame:
 
         if self.game_state["first"]:
             win_melds, state = check_win(player_state, None, True)
-            if win_melds:
-                opt = player.query_meld(self.game_state, "win", win_melds)
-                if opt:
-                    print(f"Player {p_id} wins with a heavenly hand")
-                    state["round_wind"] = self.game_state["round_wind"]
-                    state["win_condition"].append("heavenly_hand")
-                    self.game_state["done"] = True
-                    self.game_state["winning_hand_state"] = state
-                    return True
+            options = {
+                "win": win_melds
+            }
+            _, meld = player.query_meld(self.game_state, options)
+            if meld:
+                print(f"Player {p_id} wins with a heavenly hand")
+                state["round_wind"] = self.game_state["round_wind"]
+                state["win_condition"].append("heavenly_hand")
+                self.game_state["done"] = True
+                self.game_state["winning_hand_state"] = state
+                return True
         return False
 
     def deal_tile_step(self, p_id: int) -> Tile | None:
@@ -130,35 +132,24 @@ class MahjongGame:
             print(f"Player {p_id} draws {tile}")
         return tile
 
-    def resolve_kong(self, p_id: int, next_p_id: int, tile: Tile | None) -> bool:
+    def resolve_kong(self, p_id: int, next_p_id: int, meld: list[Tile]) -> None:
         player_state = self.game_state["players"][p_id]
-        next_player = self.players[next_p_id]
         next_player_state = self.game_state["players"][next_p_id]
 
-        kong_meld = check_kong(next_player_state, tile, p_id == next_p_id)
-        if kong_meld:
-            opt = next_player.query_meld(self.game_state, "kong", kong_meld)  # decision point: whether to kong
-            if opt:
-                # Check if other players can rob the kong
-                if (p_id != next_p_id):
-                    # only if it's from an exposed pung
-                    if ([tile] * 3 in next_player_state["melds"]) and self.check_rob_kong(tile, next_p_id):
-                        if self.check_rob_kong(tile, next_p_id):
-                            return True
-                    # add discarded tile to hand
-                    next_player_state["hand"].append(player_state["discards"].pop())
-                elif tile is not None:
-                    # add drawn tile to hand
-                    next_player_state["hand"].append(tile)
-                print(kong_meld[opt-1])
-                self.perform_meld(next_p_id, kong_meld[opt-1])
-                print(f"Player {next_p_id} has performed a kong")
-                self.game_state["current_player"] = next_p_id
-                if self.game_state["kong"]:  # already had a kong this turn
-                    self.game_state["double_kong"] = True
-                self.set_draw_replacement_after_kong(next_p_id)
-                return True
-        return False
+        tile = meld[0]
+        # Check if other players can rob the kong
+        if (p_id != next_p_id):
+            # only if it's from an exposed pung
+            if ([tile] * 3 in next_player_state["melds"]) and self.check_rob_kong(tile, next_p_id):
+                if self.check_rob_kong(tile, next_p_id):
+                    return
+            # add discarded tile to hand
+            next_player_state["hand"].append(player_state["discards"].pop())
+        elif tile is not None:
+            # add drawn tile to hand
+            next_player_state["hand"].append(tile)
+
+        self.set_draw_replacement_after_kong(next_p_id)
 
     def check_current_player_options(self, p_id: int, tile: Tile | None) -> bool:
         player = self.players[p_id]
@@ -166,9 +157,14 @@ class MahjongGame:
 
         # Check current player for win (self draw win)
         win_melds, state = check_win(player_state, tile, True)
-        if win_melds:
-            opt = player.query_meld(self.game_state, "win", win_melds)
-            if opt:
+        options = {
+            "win": win_melds,
+            "kong": check_kong(player_state, tile, True),
+        }
+        meld_type, meld = player.query_meld(self.game_state, options)
+        if meld_type == "win":
+            if meld:
+                self.perform_win(p_id, meld)
                 print(f"Player {p_id} wins")
                 state["round_wind"] = self.game_state["round_wind"]
                 if not self.game_state["wall"]:
@@ -180,10 +176,14 @@ class MahjongGame:
                         state["win_condition"].append("win_by_kong")
                 self.game_state["done"] = True
                 self.game_state["winning_hand_state"] = state
+                print("Winning hand: ", player_state["melds"])
+                print("Winning hand state: ", state)
+                print("Winning hand score: ", score_hand(player_state["melds"], state))
                 return True
 
         # Check current player for kong (from exposed pung)
-        if self.resolve_kong(p_id, p_id, tile):
+        if meld_type == "kong":
+            self.resolve_kong(p_id, p_id, meld)
             return True
         return False
 
@@ -194,21 +194,27 @@ class MahjongGame:
             next_player = self.players[next_player_idx]
             next_player_state = self.game_state["players"][next_player_idx]
             rob_kong_meld, state = check_win(next_player_state, discarded_tile, False)
-            if rob_kong_meld:
-                rob_kong_opt = next_player.query_meld(self.game_state, "win", rob_kong_meld)
-                if rob_kong_opt:
-                    print(f"Player {next_player_idx} wins")
-                    state["round_wind"] = self.game_state["round_wind"]
-                    state["win_condition"].append("rob_kong")
-                    if not self.game_state["wall"]:
-                        state["win_condition"].append("last_draw")
-                    self.game_state["done"] = True
-                    self.game_state["winning_hand_state"] = state
-                    return True
+            options = {
+                "win": rob_kong_meld
+            }
+            _, meld = next_player.query_meld(self.game_state, options)
+            if meld:
+                self.perform_single_meld(next_player_idx, meld)
+                print(f"Player {next_player_idx} wins")
+                state["round_wind"] = self.game_state["round_wind"]
+                state["win_condition"].append("rob_kong")
+                if not self.game_state["wall"]:
+                    state["win_condition"].append("last_draw")
+                self.game_state["done"] = True
+                self.game_state["winning_hand_state"] = state
+                return True
         return False
 
     def set_draw_replacement_after_kong(self, p_id) -> None:
         '''Set the game state to draw a replacement tile after a kong for player p_id'''
+        self.game_state["current_player"] = p_id
+        if self.game_state["kong"]:  # already had a kong this turn
+            self.game_state["double_kong"] = True
         print(f"Drawing replacement tile for player {p_id}")
         self.game_state["discard"] = False
         self.game_state["kong"] = True
@@ -218,7 +224,7 @@ class MahjongGame:
         player_state = self.game_state["players"][p_id]
 
         self.print_player_info(p_id)
-        discard_idx = player.query_discard(self.game_state, True)  # decision point: what to discard?
+        discard_idx = player.query_discard(self.game_state, False)  # decision point: what to discard?
         discarded_tile = player_state["hand"].pop(discard_idx)
         player_state["discards"].append(discarded_tile)
         print(f"Player {p_id} discarded {discarded_tile}")
@@ -227,64 +233,82 @@ class MahjongGame:
 
     def resolve_other_actions(self, discarded_tile: Tile, p_id: int) -> bool:
         player_state = self.game_state["players"][p_id]
-        # Resolve potential actions from other players
+        # Get potential actions for other players
+        player_actions = {}
         for i in range(1, NUM_PLAYERS):
             next_player_idx = (p_id + i) % NUM_PLAYERS
             next_player = self.players[next_player_idx]
             next_player_state = self.game_state["players"][next_player_idx]
 
-            # Check for wins
             win_melds, state = check_win(next_player_state, discarded_tile, False)
-            if win_melds:
-                opt = next_player.query_meld(self.game_state, "win", win_melds)  # decision point: whether to win
-                if opt:
-                    print(f"Player {next_player_idx} wins")
-                    state["round_wind"] = self.game_state["round_wind"]
-                    state["win_condition"].append("win_by_discard")
-                    if not self.game_state["wall"]:
-                        state["win_condition"].append("last_draw")
-                    if self.game_state["first"]:
-                        state["win_condition"].append("earthly_hand")
-                    self.game_state["done"] = True
-                    self.game_state["winning_hand_state"] = state
-                    return True
-
-            # Check for kongs
-            if self.resolve_kong(p_id, next_player_idx, discarded_tile):
-                return True
-
-            # Check for pungs
+            kong_meld = check_kong(next_player_state, discarded_tile, False)
             pung_meld = check_pung(next_player_state, discarded_tile, False)
-            if pung_meld:
-                opt = next_player.query_meld(self.game_state, "pung", pung_meld)  # decision point: whether to pung
-                if opt:
-                    next_player_state["hand"].append(player_state["discards"].pop())
-                    self.perform_meld(next_player_idx, pung_meld[opt-1])
-                    print(f"Player {next_player_idx} has performed a pung")
-                    self.game_state["discard"] = True
-                    self.game_state["current_player"] = next_player_idx
-                    self.game_state["kong"] = False
-                    self.game_state["double_kong"] = False
-                    if self.game_state["first"]:
-                        self.game_state["first"] = False
-                    return True
+            chow_meld = check_chow(next_player_state, discarded_tile, False) if i == 1 else []
 
-            # Check for chows (only next player can chow)
-            if i == 1:
-                chow_meld = check_chow(next_player_state, discarded_tile, False)
-                if chow_meld:
-                    opt = next_player.query_meld(self.game_state, "chow", chow_meld)  # decision point: whether to chow
-                    if opt:
-                        next_player_state["hand"].append(player_state["discards"].pop())
-                        self.perform_meld(next_player_idx, chow_meld[opt-1])
-                        print(f"Player {next_player_idx} has performed a chow")
-                        self.game_state["discard"] = True
-                        self.game_state["current_player"] = next_player_idx
-                        self.game_state["kong"] = False
-                        self.game_state["double_kong"] = False
-                        if self.game_state["first"]:
-                            self.game_state["first"] = False
-                        return True
+            options = {
+                "win": win_melds,
+                "kong": kong_meld,
+                "pung": pung_meld,
+                "chow": chow_meld
+            }
+            meld_type, meld = next_player.query_meld(self.game_state, options)
+
+            player_actions[next_player_idx] = {
+                "meld_type": meld_type,
+                "meld": meld,
+                "state": {}
+            }
+            if meld_type == "win":
+                player_actions[next_player_idx]["state"] = state
+        if not player_actions:
+            return False  # everyone skips
+
+        # Choose action to resolve based on priority and seat position
+        player_to_act = -1
+        for meld_type in ["win", "kong", "pung", "chow"]:
+            for i in range(1, NUM_PLAYERS):
+                next_player_idx = (p_id + i) % NUM_PLAYERS
+                if player_actions[next_player_idx]["meld_type"] == meld_type:
+                    player_to_act = next_player_idx
+                    break
+            if player_to_act != -1:
+                break
+        else:
+            return False  # everyone skips
+
+        # Resolve chosen action
+        meld_type = player_actions[player_to_act]["meld_type"]
+        meld = player_actions[player_to_act]["meld"]
+
+        next_player_state = self.game_state["players"][player_to_act]
+        next_player_state["hand"].append(player_state["discards"].pop())
+        if meld_type == "win":
+            self.perform_win(next_player_idx, meld)
+            print(f"Player {next_player_idx} wins")
+            state["round_wind"] = self.game_state["round_wind"]
+            if not self.game_state["wall"]:
+                state["win_condition"].append("last_draw")
+            if self.game_state["first"]:
+                state["win_condition"].append("earthly_hand")
+            self.game_state["done"] = True
+            self.game_state["winning_hand_state"] = state
+            print("Winning hand: ", next_player_state["melds"])
+            print("Winning hand state: ", state)
+            print("Winning hand score: ", score_hand(next_player_state["melds"], state))
+            return True
+        self.perform_single_meld(next_player_idx, meld)
+        if meld_type == "kong":
+            self.resolve_kong(p_id, next_player_idx, meld)
+            return True
+        if meld_type in ["pung", "chow"]:
+            print(f"Player {next_player_idx} has performed a {meld_type}")
+            self.game_state["discard"] = True
+            self.game_state["current_player"] = next_player_idx
+            self.game_state["kong"] = False
+            self.game_state["double_kong"] = False
+            if self.game_state["first"]:
+                self.game_state["first"] = False
+            return True
         return False
 
     def prepare_next_turn(self, p_id: int) -> None:
@@ -295,7 +319,7 @@ class MahjongGame:
         self.game_state["current_player"] = (p_id + 1) % NUM_PLAYERS
         print()
 
-    def perform_meld(self, p_id: int, to_meld: list[Tile]) -> None:
+    def perform_single_meld(self, p_id: int, to_meld: list[Tile]) -> None:
         player_state = self.game_state["players"][p_id]
         # handle exposed pung --> kong
         if len(to_meld) == 4:
@@ -309,6 +333,14 @@ class MahjongGame:
         for tile in to_meld:
             player_state["hand"].remove(tile)
         player_state["melds"].append(to_meld)
+
+    def perform_win(self, p_id: int, to_meld: list[list[Tile]]) -> None:
+        player_state = self.game_state["players"][p_id]
+        # handle win -- multiple melds, list of list of tiles
+        for meld in to_meld:
+            for tile in meld:
+                player_state["hand"].remove(tile)
+            player_state["melds"].append(meld)
 
     def print_player_info(self, p_id: int, sort_hand: bool = False) -> None:
         p_state = self.game_state["players"][p_id]

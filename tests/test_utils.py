@@ -204,7 +204,7 @@ def test_score_thirteen_orphans():
 def test_score_mixed_orphans():
     t1 = [Tile("bamboo", "1")]
     t2 = [Tile("bamboo", "9")]
-    t3 = [Tile("dots", "1")]
+    t3 = [Tile("dot", "1")]
     t4 = [Tile("dragon", "red")]
     t5 = [Tile("wind", "west")]
     melds = [t1 * 3] + [t2 * 3] + [t3 * 3] + [t4 * 3] + [t5 * 2]
