@@ -40,6 +40,7 @@ class MahjongGame:
             "draw": False,  # indicates if the game ends in a draw
             "done": False,
             "winning_hand_state": None,
+            "phase": "meld",  # game phase -- "meld", "discard", informs action mask generation
             "players": {
                 i: {
                     "id": i,
@@ -112,6 +113,8 @@ class MahjongGame:
 
         if self.game_state["first"]:
             win_melds, state = check_win(player_state, None, True)
+            if not win_melds:
+                return False
             options = {
                 "win": win_melds
             }
@@ -161,8 +164,10 @@ class MahjongGame:
             "win": win_melds,
             "kong": check_kong(player_state, tile, True),
         }
-        meld_type, meld = player.query_meld(self.game_state, options)
-        if meld_type == "win":
+        if not any(options.values()):
+            return False  # no options available
+        action, meld = player.query_meld(self.game_state, options)
+        if action == "win":
             if meld:
                 self.perform_win(p_id, meld)
                 print(f"Player {p_id} wins")
@@ -182,7 +187,7 @@ class MahjongGame:
                 return True
 
         # Check current player for kong (from exposed pung)
-        if meld_type == "kong":
+        if action == "kong":
             self.resolve_kong(p_id, p_id, meld)
             return True
         return False
@@ -222,6 +227,7 @@ class MahjongGame:
     def discard_tile_step(self, p_id: int) -> Tile:
         player = self.players[p_id]
         player_state = self.game_state["players"][p_id]
+        self.game_state["phase"] = "discard"
 
         self.print_player_info(p_id)
         discard_idx = player.query_discard(self.game_state, False)  # decision point: what to discard?
@@ -229,6 +235,7 @@ class MahjongGame:
         player_state["discards"].append(discarded_tile)
         print(f"Player {p_id} discarded {discarded_tile}")
         self.game_state["discard"] = False
+        self.game_state["phase"] = "meld"
         return discarded_tile
 
     def resolve_other_actions(self, discarded_tile: Tile, p_id: int) -> bool:
@@ -251,7 +258,10 @@ class MahjongGame:
                 "pung": pung_meld,
                 "chow": chow_meld
             }
-            meld_type, meld = next_player.query_meld(self.game_state, options)
+            if any(options.values()):
+                meld_type, meld = next_player.query_meld(self.game_state, options)
+            else:
+                meld_type, meld = "", []
 
             player_actions[next_player_idx] = {
                 "meld_type": meld_type,

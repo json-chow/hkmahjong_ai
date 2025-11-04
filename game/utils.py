@@ -1,4 +1,5 @@
 from game.tile import Tile
+from game.constants import Action, NUM_ACTIONS, TILE_TO_ID, CHOW_TO_ID
 import random
 from collections import Counter
 from typing import TypedDict
@@ -67,6 +68,7 @@ class GameStateDict(TypedDict):
     draw: bool
     done: bool
     winning_hand_state: HandStateDict | None
+    phase: str
     players: dict[int, PlayerStateDict]
 
 
@@ -416,3 +418,34 @@ def check_chow(p_state: PlayerStateDict, tile: Tile, current_player: bool) -> li
         possible_chows.append([tll, tl, tile])
 
     return possible_chows
+
+
+def get_action_mask(game_state: GameStateDict, p_id: int, discarded_tile: Tile | None) -> list[int]:
+    '''Given valid actions for the current state, returns an action mask'''
+    mask = [0] * NUM_ACTIONS
+    player_state = game_state["players"][p_id]
+    player_hand = player_state["hand"]
+
+    # Action mask for discard phase
+    if game_state["phase"] == "discard":
+        for tile in player_hand:
+            mask[Action.DISCARD + TILE_TO_ID[tile]] = 1
+        return mask
+
+    # Action mask for meld phase
+    # Can always pass
+    mask[Action.PASS] = 1
+    # Check for possible chows, pungs, kongs, wins
+    if check_win(player_state, discarded_tile, p_id == game_state["current_player"])[0]:
+        mask[Action.WIN] = 1
+    for kong in check_kong(player_state, discarded_tile, p_id == game_state["current_player"]):
+        tile_id = TILE_TO_ID[kong[0]]
+        mask[Action.KONG + tile_id] = 1
+    if discarded_tile:
+        for chow in check_chow(player_state, discarded_tile, False):
+            chow_id = CHOW_TO_ID[chow[0]]
+            mask[Action.CHOW + chow_id] = 1  # offset by 2 for leftmost tile in chow
+        for pung in check_pung(player_state, discarded_tile, False):
+            tile_id = TILE_TO_ID[pung[0]]
+            mask[Action.PUNG + tile_id] = 1
+    return mask

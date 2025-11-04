@@ -29,14 +29,6 @@ class Player(ABC):
 
 class HumanPlayer(Player):
 
-    # def query_meld(self, state: GameStateDict, type: str, options: list[list[Tile]]) -> int:
-    #     '''Manual melding performed by human player'''
-    #     print(f"Player {self.id}, you have a potential {type}")
-    #     print("0: Skip")
-    #     for i in range(1, len(options)+1):
-    #         print(f"{i}: {options[i-1]}")
-    #     return int(input("Choice: "))
-
     def query_meld(self, state: GameStateDict, options: dict) -> tuple[str, list[Tile] | list[list[Tile]]]:
         print(f"Player {self.id}, you have a potential meld")
         # Choose type of meld

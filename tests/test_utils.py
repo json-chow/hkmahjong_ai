@@ -1,6 +1,8 @@
 import pytest
-from game.utils import check_win, check_kong, check_pung, check_chow, score_hand, HandStateDict
+from game.utils import check_win, check_kong, check_pung, check_chow, score_hand, get_action_mask
+from game.utils import HandStateDict, GameStateDict, PlayerStateDict
 from game.tile import Tile
+from game.constants import NUM_ACTIONS
 
 
 @pytest.fixture
@@ -233,3 +235,76 @@ def test_score_orphans():
         "nine_gates": False
     }
     assert score_hand(melds, state) == 13  # orphans (10), all pungs (3), no flowers (1)
+
+
+def test_action_mask_meld():
+    t1 = Tile("bamboo", "2")
+    t2 = Tile("bamboo", "3")
+    t3 = Tile("bamboo", "4")
+    t4 = Tile("bamboo", "5")
+    t5 = Tile("wind", "west")
+    p0_state: PlayerStateDict = {
+        "id": 0,
+        "seat_wind": "east",
+        "hand": [t1, t1, t1, t2, t2, t3, t3, t4, t4, t5, t5, t5, t5],
+        "melds": [],
+        "discards": []
+    }
+    game_state: GameStateDict = {
+        "players": {
+            0: p0_state
+        },
+        "wall": [],
+        "round_wind": "east",
+        "current_player": 0,  # idx into self.players
+        "first": False,  # flag the very first turn
+        "discard": False,  # skip drawing a tile
+        "kong": False,  # for tracking win by kong, indicates if a replacement tile is to be drawn due to a kong
+        "double_kong": False,  # for tracking win by double kong
+        "draw": False,  # indicates if the game ends in a draw
+        "done": False,
+        "winning_hand_state": None,
+        "phase": "meld",  # game phase -- "meld", "discard", informs action mask generation
+    }
+    mask = get_action_mask(game_state, 0, t4)
+    exp_res = [0] * NUM_ACTIONS
+    exp_res[-1] = 1  # pass
+    exp_res[68] = 1  # 5 bamboo pung
+    exp_res[43] = 1  # 3-4-5 bamboo chow
+    assert mask == exp_res
+
+
+def test_action_mask_discard():
+    t1 = Tile("bamboo", "2")
+    t2 = Tile("bamboo", "3")
+    t3 = Tile("bamboo", "4")
+    t4 = Tile("bamboo", "5")
+    t5 = Tile("wind", "west")
+    p0_state: PlayerStateDict = {
+        "id": 0,
+        "seat_wind": "east",
+        "hand": [t1, t1, t1, t2, t2, t3, t3, t4, t4, t5, t5, t5, t5],
+        "melds": [],
+        "discards": []
+    }
+    game_state: GameStateDict = {
+        "players": {
+            0: p0_state
+        },
+        "wall": [],
+        "round_wind": "east",
+        "current_player": 0,  # idx into self.players
+        "first": False,  # flag the very first turn
+        "discard": False,  # skip drawing a tile
+        "kong": False,  # for tracking win by kong, indicates if a replacement tile is to be drawn due to a kong
+        "double_kong": False,  # for tracking win by double kong
+        "draw": False,  # indicates if the game ends in a draw
+        "done": False,
+        "winning_hand_state": None,
+        "phase": "discard",  # game phase -- "meld", "discard", informs action mask generation
+    }
+    mask = get_action_mask(game_state, 0, None)
+    exp_res = [0] * NUM_ACTIONS
+    exp_res[10:14] = [1, 1, 1, 1]  # discard bamboos
+    exp_res[33] = 1  # discard west wind
+    assert mask == exp_res
