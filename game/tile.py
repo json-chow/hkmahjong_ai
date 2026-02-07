@@ -21,16 +21,9 @@ class Tile:
     def __lt__(self, other: "Tile") -> bool:
         # compare by suits
         if self.suit != other.suit:
-            if Tile.suits.index(self.suit) < Tile.suits.index(other.suit):
-                return True
-            else:
-                return False
-        else:
-            # compare by value
-            if Tile.values.index(self.value) < Tile.values.index(other.value):
-                return True
-            else:
-                return False
+            return Tile.suits.index(self.suit) < Tile.suits.index(other.suit)
+        # otherwise, compare by value
+        return Tile.values.index(self.value) < Tile.values.index(other.value)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Tile):

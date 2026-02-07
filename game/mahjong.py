@@ -144,8 +144,7 @@ class MahjongGame:
         if (p_id != next_p_id):
             # only if it's from an exposed pung
             if ([tile] * 3 in next_player_state["melds"]) and self.check_rob_kong(tile, next_p_id):
-                if self.check_rob_kong(tile, next_p_id):
-                    return
+                return
             # add discarded tile to hand
             next_player_state["hand"].append(player_state["discards"].pop())
         elif tile is not None:
