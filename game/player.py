@@ -2,6 +2,7 @@ from __future__ import annotations
 import typing
 from abc import ABC, abstractmethod
 import random
+from typing import Optional
 from game.utils import GameStateDict
 
 
@@ -16,7 +17,10 @@ class Player(ABC):
         self.id = id
 
     @abstractmethod
-    def query_meld(self, state: GameStateDict, options: dict) -> tuple[str, list[Tile] | list[list[Tile]]]:
+    def query_meld(self, state: GameStateDict, options: dict[str, list[list[Tile]]]) -> tuple[str, list[list[Tile]]]:
+        '''
+        Given the current game state and a list of possible meld options, return the chosen meld option
+        '''
         pass
 
     @abstractmethod
@@ -29,7 +33,7 @@ class Player(ABC):
 
 class HumanPlayer(Player):
 
-    def query_meld(self, state: GameStateDict, options: dict) -> tuple[str, list[Tile] | list[list[Tile]]]:
+    def query_meld(self, state: GameStateDict, options: dict[str, list[list[Tile]]]) -> tuple[str, list[list[Tile]]]:
         print(f"Player {self.id}, you have a potential meld")
         # Choose type of meld
         print("0: Skip")
@@ -55,9 +59,9 @@ class HumanPlayer(Player):
         for i in range(len(melds)):
             print(f"{i}: {melds[i]}")
         meld_choice = int(input("Choice: "))
-        return possible_choices[choice], melds[meld_choice]
+        return possible_choices[choice], [melds[meld_choice]]
 
-    def query_discard(self, state: GameStateDict, sorted_hand: bool = False, idx: typing.Optional[int] = None) -> int:
+    def query_discard(self, state: GameStateDict, sorted_hand: bool = False, idx: Optional[int] = None) -> int:
         curr_hand = state["players"][self.id]["hand"]
         if idx is None:  # used for testing
             idx = int(input(f"Choose a discard (0...{len(curr_hand)-1}): "))
@@ -72,7 +76,7 @@ class RandomAIPlayer(Player):
         super().__init__(id)
         self.rng = random.Random(seed)
 
-    def query_meld(self, state: GameStateDict, options: dict) -> tuple[str, list[Tile] | list[list[Tile]]]:
+    def query_meld(self, state: GameStateDict, options: dict[str, list[list[Tile]]]) -> tuple[str, list[list[Tile]]]:
         # TODO: fixed action space for the melds
         # Choose type of meld
         idx = 1
@@ -94,7 +98,7 @@ class RandomAIPlayer(Player):
 
         melds = options[possible_choices[choice]]
         meld_choice = self.rng.randint(0, len(melds)-1)
-        return possible_choices[choice], melds[meld_choice]
+        return possible_choices[choice], [melds[meld_choice]]
 
     def query_discard(self, state: GameStateDict, sorted_hand: bool = False) -> int:
         curr_hand = state["players"][self.id]["hand"]

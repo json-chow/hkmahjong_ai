@@ -3,7 +3,7 @@ from game.player import HumanPlayer, RandomAIPlayer
 from game.tile import Tile
 
 
-def test_init_game():
+def test_init_game() -> None:
     game = MahjongGame()
     state = game.game_state
     num_hand_tiles = sum([len(state["players"][p]["hand"]) for p in state["players"]])
@@ -11,14 +11,14 @@ def test_init_game():
     assert len(state["wall"]) + num_hand_tiles + num_flowers == 144
 
 
-def test_game_draw():
+def test_game_draw() -> None:
     game = MahjongGame()
     game.set_players([HumanPlayer(i) for i in range(4)])
     game.game_state["wall"] = []
     assert game.check_game_draw() is True
 
 
-def test_check_heavenly_hand():
+def test_check_heavenly_hand() -> None:
     game = MahjongGame()
     game.set_players([RandomAIPlayer(i) for i in range(4)])
     t1 = Tile("bamboo", "1")
@@ -32,7 +32,7 @@ def test_check_heavenly_hand():
     assert "heavenly_hand" in game.game_state["winning_hand_state"]["win_condition"]
 
 
-def test_check_earthly_hand():
+def test_check_earthly_hand() -> None:
     game = MahjongGame()
     game.set_players([RandomAIPlayer(i) for i in range(4)])
     t1 = Tile("bamboo", "1")
@@ -47,7 +47,7 @@ def test_check_earthly_hand():
     assert "earthly_hand" in game.game_state["winning_hand_state"]["win_condition"]
 
 
-def test_deal_tile():
+def test_deal_tile() -> None:
     game = MahjongGame()
     game.set_players([RandomAIPlayer(i) for i in range(4)])
     tile = Tile("dot", "1")

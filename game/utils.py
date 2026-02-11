@@ -2,7 +2,7 @@ from game.tile import Tile
 from game.constants import Action, NUM_ACTIONS, TILE_TO_ID, CHOW_TO_ID
 import random
 from collections import Counter
-from typing import TypedDict
+from typing import TypedDict, Optional
 
 
 FAAN = {
@@ -70,6 +70,12 @@ class GameStateDict(TypedDict):
     winning_hand_state: HandStateDict | None
     phase: str
     players: dict[int, PlayerStateDict]
+
+
+class PlayerActionDict(TypedDict):
+    meld_type: str
+    meld: list[list[Tile]]
+    state: Optional[HandStateDict]
 
 
 def init_wall(seed: int | None = None) -> list[Tile]:
@@ -238,7 +244,11 @@ def score_hand(melds: list[list[Tile]], state: HandStateDict) -> int:
     return min(score, 13)  # 13 faan is max
 
 
-def check_win(p_state: PlayerStateDict, tile: Tile | None, current_player: bool) -> tuple[list[list[Tile]], HandStateDict]:
+def check_win(
+    p_state: PlayerStateDict,
+    tile: Tile | None,
+    current_player: bool
+) -> tuple[list[list[Tile]], HandStateDict]:
     '''
     Checks if the player has either a self-draw win or a win by discard
     Returns the highest scoring meld combination that can be used to win
@@ -253,7 +263,7 @@ def check_win(p_state: PlayerStateDict, tile: Tile | None, current_player: bool)
     }
 
     # Count number of tiles in current hand
-    tile_counts = Counter(p_state["hand"])
+    tile_counts: Counter[Tile] = Counter(p_state["hand"])
 
     # Check for win by discard -- check if tile can be used to win
     if tile and not current_player:
@@ -317,7 +327,7 @@ def check_win(p_state: PlayerStateDict, tile: Tile | None, current_player: bool)
     return best_win, state
 
 
-def _check_meld(tile_counts: Counter) -> tuple[bool, list[list[list[Tile]]]]:
+def _check_meld(tile_counts: Counter[Tile]) -> tuple[bool, list[list[list[Tile]]]]:
     '''Checks and returns all melds if melds can be formed in a hand'''
     if tile_counts.total() == 0:
         return True, [[]]

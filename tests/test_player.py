@@ -1,16 +1,28 @@
 import pytest
 from game.player import HumanPlayer
 from game.tile import Tile
+from game.utils import GameStateDict
 
 
 @pytest.fixture
-def p1():
+def p1() -> HumanPlayer:
     return HumanPlayer(1)
 
 
 @pytest.fixture
-def state():
+def state() -> GameStateDict:
     return {
+        "wall": [],
+        "round_wind": "east",
+        "current_player": 1,
+        "first": False,
+        "discard": False,
+        "kong": False,
+        "double_kong": False,
+        "draw": False,
+        "done": False,
+        "winning_hand_state": None,
+        "phase": "discard",
         "players": {
             0: {
                 "id": 0,
@@ -40,19 +52,11 @@ def state():
                 "melds": [],
                 "discards": []
             }
-        },
-        "wall": [],
-        "dead_wall": [],
-        "current_player": 1,
-        "last_discard": None,
-        "discard": False,
-        "winner": None,
-        "win_type": None,
-        "done": False
+        }
     }
 
 
-def test_discard_tile(p1, state):
+def test_discard_tile(p1: HumanPlayer, state: GameStateDict) -> None:
     t1 = [Tile("bamboo", "1")]
     t2 = [Tile("bamboo", "2")]
     t3 = [Tile("bamboo", "3")]
