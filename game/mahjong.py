@@ -199,6 +199,7 @@ class MahjongGame:
 
     def check_rob_kong(self, discarded_tile: Tile | None, p_id: int) -> bool:
         '''Check if any other player can rob the kong of player p_id'''
+        player_state = self.game_state["players"][p_id]
         for i in range(1, NUM_PLAYERS):
             next_player_idx = (p_id + i) % NUM_PLAYERS
             next_player = self.players[next_player_idx]
@@ -209,7 +210,8 @@ class MahjongGame:
             }
             _, meld = next_player.query_meld(self.game_state, options)
             if meld:
-                self.perform_single_meld(next_player_idx, meld[0])
+                next_player_state["hand"].append(player_state["discards"].pop())
+                self.perform_win(next_player_idx, meld)
                 print(f"Player {next_player_idx} wins")
                 state["round_wind"] = self.game_state["round_wind"]
                 state["win_condition"].append("rob_kong")
@@ -296,6 +298,9 @@ class MahjongGame:
         meld = player_actions[player_to_act]["meld"]
 
         next_player_state = self.game_state["players"][player_to_act]
+        if meld_type == "kong":
+            self.resolve_kong(p_id, player_to_act, meld)
+            return True
         next_player_state["hand"].append(player_state["discards"].pop())
         if meld_type == "win":
             self.perform_win(next_player_idx, meld)
@@ -310,9 +315,6 @@ class MahjongGame:
             print("Winning hand: ", next_player_state["melds"])
             print("Winning hand state: ", state)
             print("Winning hand score: ", score_hand(next_player_state["melds"], state))
-            return True
-        if meld_type == "kong":
-            self.resolve_kong(p_id, player_to_act, meld)
             return True
 
         self.perform_single_meld(player_to_act, meld[0])
