@@ -197,20 +197,22 @@ class MahjongGame:
             return True
         return False
 
-    def check_rob_kong(self, discarded_tile: Tile | None, p_id: int) -> bool:
+    def check_rob_kong(self, drawn_tile: Tile, p_id: int) -> bool:
         '''Check if any other player can rob the kong of player p_id'''
         player_state = self.game_state["players"][p_id]
         for i in range(1, NUM_PLAYERS):
             next_player_idx = (p_id + i) % NUM_PLAYERS
             next_player = self.players[next_player_idx]
             next_player_state = self.game_state["players"][next_player_idx]
-            rob_kong_meld, state = check_win(next_player_state, discarded_tile, False)
+            rob_kong_meld, state = check_win(next_player_state, drawn_tile, False)
             options = {
                 "win": rob_kong_meld
             }
             _, meld = next_player.query_meld(self.game_state, options)
             if meld:
-                next_player_state["hand"].append(player_state["discards"].pop())
+                # Drawn tile goes to the person who robbed the current player
+                player_state["hand"].remove(drawn_tile)
+                next_player_state["hand"].append(drawn_tile)
                 self.perform_win(next_player_idx, meld)
                 print(f"Player {next_player_idx} wins")
                 state["round_wind"] = self.game_state["round_wind"]
