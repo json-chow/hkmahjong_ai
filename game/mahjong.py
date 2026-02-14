@@ -153,8 +153,6 @@ class MahjongGame:
             # only when promoting an exposed pung to a kong (by self draw) -- game ends
             if ([tile] * 3 in player_state["melds"]) and self.check_rob_kong(tile, p_id):
                 return
-            # add drawn tile to hand
-            next_player_state["hand"].append(tile)
         elif tile is not None:
             # add discarded tile to hand
             next_player_state["hand"].append(player_state["discards"].pop())
