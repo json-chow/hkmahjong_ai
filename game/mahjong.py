@@ -149,9 +149,9 @@ class MahjongGame:
 
         tile = meld[0][0]
         # Check if other players can rob the kong
-        if (p_id != next_p_id):
-            # only if it's from an exposed pung
-            if ([tile] * 3 in next_player_state["melds"]) and self.check_rob_kong(tile, next_p_id):
+        if (p_id == next_p_id):
+            # only when promoting an exposed pung to a kong (by self draw) -- game ends
+            if ([tile] * 3 in player_state["melds"]) and self.check_rob_kong(tile, p_id):
                 return
             # add discarded tile to hand
             next_player_state["hand"].append(player_state["discards"].pop())
@@ -298,9 +298,6 @@ class MahjongGame:
         meld = player_actions[player_to_act]["meld"]
 
         next_player_state = self.game_state["players"][player_to_act]
-        if meld_type == "kong":  # Before adding the tile to the player's hand, check if the kong can be robbed
-            self.resolve_kong(p_id, player_to_act, meld)
-            return True
         next_player_state["hand"].append(player_state["discards"].pop())
         if meld_type == "win":
             self.perform_win(next_player_idx, meld)
@@ -315,6 +312,9 @@ class MahjongGame:
             print("Winning hand: ", next_player_state["melds"])
             print("Winning hand state: ", state)
             print("Winning hand score: ", score_hand(next_player_state["melds"], state))
+            return True
+        if meld_type == "kong":
+            self.resolve_kong(p_id, player_to_act, meld)
             return True
 
         self.perform_single_meld(player_to_act, meld[0])
