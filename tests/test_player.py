@@ -1,6 +1,6 @@
 import pytest
 from game.player import HumanPlayer
-from game.tile import Tile
+from game.tile import Tile, Suit
 from game.utils import GameStateDict
 
 
@@ -57,10 +57,10 @@ def state() -> GameStateDict:
 
 
 def test_discard_tile(p1: HumanPlayer, state: GameStateDict) -> None:
-    t1 = [Tile("bamboo", "1")]
-    t2 = [Tile("bamboo", "2")]
-    t3 = [Tile("bamboo", "3")]
-    t4 = [Tile("dragon", "red")]
-    t5 = [Tile("wind", "west")]
+    t1 = [Tile(Suit.BAMBOO, "1")]
+    t2 = [Tile(Suit.BAMBOO, "2")]
+    t3 = [Tile(Suit.BAMBOO, "3")]
+    t4 = [Tile(Suit.DRAGON, "red")]
+    t5 = [Tile(Suit.WIND, "west")]
     state["players"][p1.id]["hand"] = t2 * 3 + t1 * 3 + t3 * 3 + t4 * 3 + t5 * 2
     assert p1.query_discard(state, sorted_hand=True, idx=4) == 0

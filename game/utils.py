@@ -1,4 +1,4 @@
-from game.tile import Tile
+from game.tile import Tile, Suit
 from game.constants import Action, NUM_ACTIONS, TILE_TO_ID, CHOW_TO_ID
 import random
 from collections import Counter
@@ -39,6 +39,9 @@ FAAN = {
     "own_flower": 1,
     "set_of_flowers": 2
 }
+
+NON_HONOR_SUITS = {Suit.DOT, Suit.BAMBOO, Suit.CHARACTER}
+HONOR_SUITS = {Suit.DRAGON, Suit.WIND}
 
 
 class HandStateDict(TypedDict):
@@ -81,23 +84,23 @@ class PlayerActionDict(TypedDict):
 def init_wall(seed: int | None = None) -> list[Tile]:
     '''Initializes and shuffles the mahjong wall'''
     wall = []
-    for suit in Tile.suits:
-        if suit in {"dot", "bamboo", "character"}:
+    for suit in Suit:
+        if suit in NON_HONOR_SUITS:
             for value in Tile.values[:9]:
                 tile = Tile(suit, value)
                 wall.append(tile)
-        elif suit == "dragon":
+        elif suit == Suit.DRAGON:
             for value in Tile.values[9:12]:
                 tile = Tile(suit, value)
                 wall.append(tile)
-        elif suit == "wind":
+        elif suit == Suit.WIND:
             for value in Tile.values[12:]:
                 tile = Tile(suit, value)
                 wall.append(tile)
     wall *= 4
     # Add in flower tiles
     for value in Tile.values[:8]:
-        tile = Tile("flower", value)
+        tile = Tile(Suit.FLOWER, value)
         wall.append(tile)
 
     rng = random.Random(seed)
@@ -122,7 +125,7 @@ def score_hand(melds: list[list[Tile]], state: HandStateDict) -> int:
 
     for meld in melds:
         # Deal with flower 'melds'
-        if meld[0].suit == "flower":
+        if meld[0].suit == Suit.FLOWER:
             flowers.append(meld[0])
             flower_val = int(meld[0].value)
             if flower_val >= 5:  # seasons are flower tiles w/values 5 to 8
@@ -137,7 +140,7 @@ def score_hand(melds: list[list[Tile]], state: HandStateDict) -> int:
             # If the first and second tiles in the meld are the same, must be a pung
             if meld[0] == meld[1]:
                 pungs += 1
-                if meld[0].value not in {"1", "9"} and meld[0].suit not in {"dragon", "wind"}:
+                if meld[0].value not in {"1", "9"} and meld[0].suit not in HONOR_SUITS:
                     orphan = False
             # Otherwise, it must be a chow
             else:
@@ -146,19 +149,19 @@ def score_hand(melds: list[list[Tile]], state: HandStateDict) -> int:
         elif len(meld) == 4:
             kongs += 1
             # Orphan condition exists for kongs as well
-            if meld[0].value not in {"1", "9"} and meld[0].suit not in {"dragon", "wind"}:
+            if meld[0].value not in {"1", "9"} and meld[0].suit not in HONOR_SUITS:
                 orphan = False
         else:
             pair = meld[0]
             # Orphan condition for pairs as well
-            if meld[0].value not in {"1", "9"} and meld[0].suit not in {"dragon", "wind"}:
+            if meld[0].value not in {"1", "9"} and meld[0].suit not in HONOR_SUITS:
                 orphan = False
             continue  # don't go through honor meld logics if meld is a pair
 
         # Deal with honor melds
-        if meld[0].suit == "dragon":
+        if meld[0].suit == Suit.DRAGON:
             dragons += 1
-        elif meld[0].suit == "wind":
+        elif meld[0].suit == Suit.WIND:
             winds += 1
             # Round wind
             if meld[0].value == state["round_wind"]:
@@ -202,8 +205,8 @@ def score_hand(melds: list[list[Tile]], state: HandStateDict) -> int:
         else:
             score += FAAN["all_pung_kong"]
 
-    if ("dragon" in suits) or ("wind" in suits):
-        if ("dragon" in suits) and ("wind" in suits):
+    if (Suit.DRAGON in suits) or (Suit.WIND in suits):
+        if (Suit.DRAGON in suits) and (Suit.WIND in suits):
             # Half flush (single suit and honors) -- dragon, wind, and a suit
             if len(suits) == 3:
                 score += FAAN["half_flush"]
@@ -218,14 +221,14 @@ def score_hand(melds: list[list[Tile]], state: HandStateDict) -> int:
         if dragons == 3:
             score += FAAN["great_dragons"]
         # Small dragons
-        elif (dragons == 2) and (pair and pair.suit == "dragon"):
+        elif (dragons == 2) and (pair and pair.suit == Suit.DRAGON):
             score += FAAN["small_dragons"]
 
         # Great winds
         if winds == 4:
             score += FAAN["great_winds"]
         # Small winds
-        elif (winds == 3) and (pair and pair.suit == "wind"):
+        elif (winds == 3) and (pair and pair.suit == Suit.WIND):
             score += FAAN["small_winds"]
 
         # Terminals + honors
@@ -278,19 +281,19 @@ def check_win(
 
     # Check for thirteen orphans
     thirteen_orphans = {
-        Tile("bamboo", "1"),
-        Tile("bamboo", "9"),
-        Tile("dot", "1"),
-        Tile("dot", "9"),
-        Tile("character", "1"),
-        Tile("character", "9"),
-        Tile("dragon", "red"),
-        Tile("dragon", "green"),
-        Tile("dragon", "white"),
-        Tile("wind", "east"),
-        Tile("wind", "west"),
-        Tile("wind", "south"),
-        Tile("wind", "north")
+        Tile(Suit.BAMBOO, "1"),
+        Tile(Suit.BAMBOO, "9"),
+        Tile(Suit.DOT, "1"),
+        Tile(Suit.DOT, "9"),
+        Tile(Suit.CHARACTER, "1"),
+        Tile(Suit.CHARACTER, "9"),
+        Tile(Suit.DRAGON, "red"),
+        Tile(Suit.DRAGON, "green"),
+        Tile(Suit.DRAGON, "white"),
+        Tile(Suit.WIND, "east"),
+        Tile(Suit.WIND, "west"),
+        Tile(Suit.WIND, "south"),
+        Tile(Suit.WIND, "north")
     }
     if thirteen_orphans.issubset(tile_counts):
         # If all required tiles are in the hand, then it must be that the hand is a thirteen orphans
@@ -357,7 +360,7 @@ def _check_meld(tile_counts: Counter[Tile]) -> tuple[bool, list[list[list[Tile]]
         tile_counts[tile] += 3
 
     # Check for chows
-    if tile.suit in Tile.suits[:3] and int(tile.value) <= 7:
+    if tile.suit in NON_HONOR_SUITS and int(tile.value) <= 7:
         t2 = Tile(tile.suit, str(int(tile.value)+1))
         t3 = Tile(tile.suit, str(int(tile.value)+2))
         if tile_counts[t2] > 0 and tile_counts[t3] > 0:
@@ -402,7 +405,7 @@ def check_pung(p_state: PlayerStateDict, tile: Tile, current_player: bool) -> li
 def check_chow(p_state: PlayerStateDict, tile: Tile, current_player: bool) -> list[list[Tile]]:
     '''Checks if the given tile can be used by player to form a chow'''
     # Suit must be dots, bamboo, or characters
-    if tile.suit not in Tile.suits[:3]:
+    if tile.suit not in NON_HONOR_SUITS:
         return []
 
     hand = p_state["hand"].copy()

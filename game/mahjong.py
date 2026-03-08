@@ -1,12 +1,8 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
 from game.utils import init_wall, check_win, check_kong, check_chow, check_pung, score_hand
 from game.utils import GameStateDict, PlayerActionDict
 from game.player import Player, HumanPlayer
-
-
-if TYPE_CHECKING:
-    from game.tile import Tile
+from game.tile import Tile, Suit
 
 
 NUM_PLAYERS = 4
@@ -65,7 +61,7 @@ class MahjongGame:
         player_state = self.game_state["players"][p_id]
         while self.game_state["wall"]:
             tile = self.game_state["wall"].pop()
-            if tile.suit == "flower":
+            if tile.suit == Suit.FLOWER:
                 player_state["melds"].append([tile])
                 print(f"Player {p_id} drew {tile}, drawing replacement tile")
                 self.game_state["kong"] = True

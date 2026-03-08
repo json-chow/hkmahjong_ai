@@ -1,5 +1,5 @@
 from enum import IntEnum
-from game.tile import Tile
+from game.tile import Tile, Suit
 
 # number of unique tiles, excl flowers
 NUM_TILES = 34
@@ -32,18 +32,18 @@ NUM_ACTIONS = Action.PASS + 1
 TILE_TO_ID = {}
 
 cnt = 0
-for suit in Tile.suits:
-    if suit in {"dot", "bamboo", "character"}:
+for suit in Suit:
+    if suit.name in {"DOT", "BAMBOO", "CHARACTER"}:
         for value in Tile.values[:9]:
             tile = Tile(suit, value)
             TILE_TO_ID[tile] = cnt
             cnt += 1
-    elif suit == "dragon":
+    elif suit.name == "DRAGON":
         for value in Tile.values[9:12]:
             tile = Tile(suit, value)
             TILE_TO_ID[tile] = cnt
             cnt += 1
-    elif suit == "wind":
+    elif suit.name == "WIND":
         for value in Tile.values[12:]:
             tile = Tile(suit, value)
             TILE_TO_ID[tile] = cnt
@@ -52,8 +52,8 @@ for suit in Tile.suits:
 CHOW_TO_ID = {}
 
 cnt = 0
-for suit in ["dot", "bamboo", "character"]:
+for suit in ["DOT", "BAMBOO", "CHARACTER"]:
     for value in Tile.values[:7]:
-        tile = Tile(suit, value)
+        tile = Tile(Suit[suit], value)
         CHOW_TO_ID[tile] = cnt
         cnt += 1

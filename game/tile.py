@@ -1,19 +1,23 @@
-class Tile:
+from enum import Enum
 
-    suits = ["dot", "bamboo", "character", "dragon", "wind", "flower"]
+
+Suit = Enum("Suit", ["DOT", "BAMBOO", "CHARACTER", "DRAGON", "WIND", "FLOWER"])
+
+
+class Tile:
     values = ["1", "2", "3", "4", "5", "6", "7", "8", "9",
               "red", "white", "green",  # dragons
               "east", "south", "north", "west"]  # winds
     # Let flowers 1-4 be flowers and flowers 5-8 be seasons
 
-    def __init__(self, suit: str, value: str) -> None:
+    def __init__(self, suit: Suit, value: str) -> None:
         self.suit = suit
         self.value = value
 
     def __str__(self) -> str:
-        if self.suit == "flower":
-            return f"{(int(self.value) - 1) % 4 + 1}_flower"
-        return self.value + "_" + self.suit
+        if self.suit == Suit.FLOWER:
+            return f"{(int(self.value) - 1) % 4 + 1}_FLOWER"
+        return self.value + "_" + self.suit.name
 
     def __repr__(self) -> str:
         return str(self)
@@ -21,7 +25,7 @@ class Tile:
     def __lt__(self, other: "Tile") -> bool:
         # compare by suits
         if self.suit != other.suit:
-            return Tile.suits.index(self.suit) < Tile.suits.index(other.suit)
+            return self.suit.value < other.suit.value
         # otherwise, compare by value
         return Tile.values.index(self.value) < Tile.values.index(other.value)
 
