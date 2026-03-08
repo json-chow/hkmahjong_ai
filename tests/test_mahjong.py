@@ -1,6 +1,6 @@
 from game.mahjong import MahjongGame
 from game.player import HumanPlayer, RandomAIPlayer
-from game.tile import Tile, Suit
+from game.tile import Tile, Suit, Value
 
 
 def test_init_game() -> None:
@@ -21,11 +21,11 @@ def test_game_draw() -> None:
 def test_check_heavenly_hand() -> None:
     game = MahjongGame()
     game.set_players([RandomAIPlayer(i) for i in range(4)])
-    t1 = Tile(Suit.BAMBOO, "1")
-    t2 = Tile(Suit.BAMBOO, "2")
-    t3 = Tile(Suit.BAMBOO, "3")
-    t4 = Tile(Suit.DRAGON, "red")
-    t5 = Tile(Suit.WIND, "west")
+    t1 = Tile(Suit.BAMBOO, Value.ONE)
+    t2 = Tile(Suit.BAMBOO, Value.TWO)
+    t3 = Tile(Suit.BAMBOO, Value.THREE)
+    t4 = Tile(Suit.DRAGON, Value.RED)
+    t5 = Tile(Suit.WIND, Value.RED)
     game.game_state["players"][0]["hand"] = [t1, t2, t3] * 3 + [t4] * 3 + [t5] * 2
     game.step()
     assert game.game_state["winning_hand_state"] is not None
@@ -35,13 +35,13 @@ def test_check_heavenly_hand() -> None:
 def test_check_earthly_hand() -> None:
     game = MahjongGame()
     game.set_players([RandomAIPlayer(i) for i in range(4)])
-    t1 = Tile(Suit.BAMBOO, "1")
-    t2 = Tile(Suit.BAMBOO, "2")
-    t3 = Tile(Suit.BAMBOO, "3")
-    t4 = Tile(Suit.DRAGON, "red")
-    t5 = Tile(Suit.WIND, "west")
+    t1 = Tile(Suit.BAMBOO, Value.ONE)
+    t2 = Tile(Suit.BAMBOO, Value.TWO)
+    t3 = Tile(Suit.BAMBOO, Value.THREE)
+    t4 = Tile(Suit.DRAGON, Value.RED)
+    t5 = Tile(Suit.WIND, Value.RED)
     game.game_state["players"][1]["hand"] = [t1, t2, t3] * 3 + [t4] * 3 + [t5]
-    game.game_state["players"][0]["discards"] = [Tile(Suit.WIND, "west")]
+    game.game_state["players"][0]["discards"] = [Tile(Suit.WIND, Value.RED)]
     game.resolve_other_actions(t5, 0)
     assert game.game_state["winning_hand_state"] is not None
     assert "earthly_hand" in game.game_state["winning_hand_state"]["win_condition"]
@@ -50,7 +50,7 @@ def test_check_earthly_hand() -> None:
 def test_deal_tile() -> None:
     game = MahjongGame()
     game.set_players([RandomAIPlayer(i) for i in range(4)])
-    tile = Tile(Suit.DOT, "1")
+    tile = Tile(Suit.DOT, Value.ONE)
     game.game_state["players"][0]["hand"] = []
     game.game_state["wall"] = [tile]
     game.deal_tile(0)

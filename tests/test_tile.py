@@ -1,15 +1,15 @@
 import pytest
-from game.tile import Tile, Suit
+from game.tile import Tile, Suit, Value
 
 
 @pytest.fixture
 def tile1() -> Tile:
-    return Tile(Suit.BAMBOO, "1")
+    return Tile(Suit.BAMBOO, Value.ONE)
 
 
 @pytest.fixture
 def tile2() -> Tile:
-    return Tile(Suit.DRAGON, "green")
+    return Tile(Suit.DRAGON, Value.GREEN)
 
 
 def test_eq(tile1: Tile) -> None:

@@ -1,7 +1,7 @@
 import pytest
 from game.utils import check_win, check_kong, check_pung, check_chow, score_hand, get_action_mask
 from game.utils import HandStateDict, GameStateDict, PlayerStateDict
-from game.tile import Tile, Suit
+from game.tile import Tile, Suit, Value
 from game.constants import NUM_ACTIONS
 
 
@@ -19,24 +19,24 @@ def p1() -> PlayerStateDict:
 
 
 def test_check_kong_exposed(p1: PlayerStateDict) -> None:
-    t1 = Tile(Suit.BAMBOO, "2")
+    t1 = Tile(Suit.BAMBOO, Value.TWO)
     p1["melds"].append([t1] * 3)
     assert check_kong(p1, t1, True) == [[t1]*4]
 
 
 def test_check_not_kong_exposed(p1: PlayerStateDict) -> None:
-    t1 = Tile(Suit.BAMBOO, "2")
-    t2 = Tile(Suit.BAMBOO, "3")
+    t1 = Tile(Suit.BAMBOO, Value.TWO)
+    t2 = Tile(Suit.BAMBOO, Value.THREE)
     p1["melds"].append([t1] * 2 + [t2])
     assert not check_kong(p1, t1, True)
 
 
 def test_check_win_selfdraw(p1: PlayerStateDict) -> None:
-    t1 = [Tile(Suit.BAMBOO, "1")]
-    t2 = [Tile(Suit.BAMBOO, "2")]
-    t3 = [Tile(Suit.BAMBOO, "3")]
-    t4 = [Tile(Suit.DRAGON, "red")]
-    t5 = [Tile(Suit.WIND, "west")]
+    t1 = [Tile(Suit.BAMBOO, Value.ONE)]
+    t2 = [Tile(Suit.BAMBOO, Value.TWO)]
+    t3 = [Tile(Suit.BAMBOO, Value.THREE)]
+    t4 = [Tile(Suit.DRAGON, Value.RED)]
+    t5 = [Tile(Suit.WIND, Value.WEST)]
     hand = t1 * 3 + t2 * 3 + t3 * 3 + t4 * 3 + t5 * 2
     p1["hand"] = hand
     w, s = check_win(p1, None, True)
@@ -45,12 +45,12 @@ def test_check_win_selfdraw(p1: PlayerStateDict) -> None:
 
 
 def test_check_win_selfdraw2(p1: PlayerStateDict) -> None:
-    t1 = [Tile(Suit.DOT, "1")]
-    t2 = [Tile(Suit.DOT, "2")]
-    t3 = [Tile(Suit.DOT, "3")]
-    t4 = [Tile(Suit.DRAGON, "red")]
-    t5 = [Tile(Suit.WIND, "west")]
-    t6 = [Tile(Suit.BAMBOO, "1")]
+    t1 = [Tile(Suit.DOT, Value.ONE)]
+    t2 = [Tile(Suit.DOT, Value.TWO)]
+    t3 = [Tile(Suit.DOT, Value.THREE)]
+    t4 = [Tile(Suit.DRAGON, Value.RED)]
+    t5 = [Tile(Suit.WIND, Value.WEST)]
+    t6 = [Tile(Suit.BAMBOO, Value.ONE)]
     hand = t1 * 2 + t2 * 2 + t3 * 2 + t4 * 3 + t5 * 3 + t6 * 2
     p1["hand"] = hand
     w, s = check_win(p1, None, True)
@@ -59,12 +59,12 @@ def test_check_win_selfdraw2(p1: PlayerStateDict) -> None:
 
 
 def test_check_win_discard(p1: PlayerStateDict) -> None:
-    t1 = [Tile(Suit.DOT, "1")]
-    t2 = [Tile(Suit.DOT, "2")]
-    t3 = [Tile(Suit.DOT, "3")]
-    t4 = [Tile(Suit.DRAGON, "red")]
-    t5 = [Tile(Suit.WIND, "west")]
-    t6 = [Tile(Suit.BAMBOO, "1")]
+    t1 = [Tile(Suit.DOT, Value.ONE)]
+    t2 = [Tile(Suit.DOT, Value.TWO)]
+    t3 = [Tile(Suit.DOT, Value.THREE)]
+    t4 = [Tile(Suit.DRAGON, Value.RED)]
+    t5 = [Tile(Suit.WIND, Value.WEST)]
+    t6 = [Tile(Suit.BAMBOO, Value.ONE)]
     hand = t1 * 2 + t2 + t3 * 2 + t4 * 3 + t5 * 3 + t6 * 2
     p1["hand"] = hand
     w, s = check_win(p1, t2[0], False)
@@ -73,12 +73,12 @@ def test_check_win_discard(p1: PlayerStateDict) -> None:
 
 
 def test_check_win_discard2(p1: PlayerStateDict) -> None:
-    t1 = [Tile(Suit.DOT, "1")]
-    t2 = [Tile(Suit.DOT, "2")]
-    t3 = [Tile(Suit.DOT, "3")]
-    t4 = [Tile(Suit.DRAGON, "red")]
-    t5 = [Tile(Suit.WIND, "west")]
-    t6 = [Tile(Suit.BAMBOO, "1")]
+    t1 = [Tile(Suit.DOT, Value.ONE)]
+    t2 = [Tile(Suit.DOT, Value.TWO)]
+    t3 = [Tile(Suit.DOT, Value.THREE)]
+    t4 = [Tile(Suit.DRAGON, Value.RED)]
+    t5 = [Tile(Suit.WIND, Value.WEST)]
+    t6 = [Tile(Suit.BAMBOO, Value.ONE)]
     hand = t1 * 2 + t2 * 1 + t3 * 2 + t4 * 4 + t5 * 4 + t6 * 2
     p1["hand"] = hand
     w, s = check_win(p1, t2[0], False)
@@ -87,49 +87,49 @@ def test_check_win_discard2(p1: PlayerStateDict) -> None:
 
 
 def test_check_pung_cp(p1: PlayerStateDict) -> None:
-    t1 = Tile(Suit.DOT, "1")
+    t1 = Tile(Suit.DOT, Value.ONE)
     p1["hand"] = [t1] * 3
     assert check_pung(p1, t1, True) == [[t1]*3]
 
 
 def test_check_not_pung_(p1: PlayerStateDict) -> None:
-    t1 = Tile(Suit.DOT, "1")
-    t2 = Tile(Suit.DOT, "2")
+    t1 = Tile(Suit.DOT, Value.ONE)
+    t2 = Tile(Suit.DOT, Value.TWO)
     p1["hand"] = [t1] * 3
     assert not check_pung(p1, t2, True)
 
 
 def test_check_chow_cp(p1: PlayerStateDict) -> None:
-    t1 = Tile(Suit.DOT, "1")
-    t2 = Tile(Suit.DOT, "2")
-    t3 = Tile(Suit.DOT, "3")
+    t1 = Tile(Suit.DOT, Value.ONE)
+    t2 = Tile(Suit.DOT, Value.TWO)
+    t3 = Tile(Suit.DOT, Value.THREE)
     p1["hand"] = [t1, t3, t2]
     assert check_chow(p1, t2, True) == [[t1, t2, t3]]
 
 
 def test_check_chow_notcp(p1: PlayerStateDict) -> None:
-    t1 = Tile(Suit.DOT, "3")
-    t2 = Tile(Suit.DOT, "4")
-    t3 = Tile(Suit.DOT, "5")
+    t1 = Tile(Suit.DOT, Value.THREE)
+    t2 = Tile(Suit.DOT, Value.FOUR)
+    t3 = Tile(Suit.DOT, Value.FIVE)
     p1["hand"] = [t3, t2]
     assert check_chow(p1, t1, False) == [[t1, t2, t3]]
 
 
 def test_check_not_chow(p1: PlayerStateDict) -> None:
-    t1 = Tile(Suit.DOT, "1")
-    t2 = Tile(Suit.DOT, "2")
-    t3 = Tile(Suit.DOT, "4")
+    t1 = Tile(Suit.DOT, Value.ONE)
+    t2 = Tile(Suit.DOT, Value.TWO)
+    t3 = Tile(Suit.DOT, Value.FOUR)
     p1["hand"] = [t1, t2, t3]
     assert not check_chow(p1, t2, True)
 
 
 def test_score_hand1() -> None:
-    t1 = [Tile(Suit.BAMBOO, "1")]
-    t2 = [Tile(Suit.BAMBOO, "2")]
-    t3 = [Tile(Suit.BAMBOO, "3")]
-    t4 = [Tile(Suit.DRAGON, "red")]
-    t5 = [Tile(Suit.WIND, "west")]
-    t6 = [Tile(Suit.FLOWER, "5")]
+    t1 = [Tile(Suit.BAMBOO, Value.ONE)]
+    t2 = [Tile(Suit.BAMBOO, Value.TWO)]
+    t3 = [Tile(Suit.BAMBOO, Value.THREE)]
+    t4 = [Tile(Suit.DRAGON, Value.RED)]
+    t5 = [Tile(Suit.WIND, Value.WEST)]
+    t6 = [Tile(Suit.FLOWER, Value.FIVE)]
     melds = [t1 + t2 + t3] * 3 + [t4 * 3] + [t5 * 2] + [t6]
     state: HandStateDict = {
         "round_wind": "east",
@@ -142,11 +142,11 @@ def test_score_hand1() -> None:
 
 
 def test_score_hand2() -> None:
-    t1 = [Tile(Suit.BAMBOO, "1")]
-    t2 = [Tile(Suit.BAMBOO, "2")]
-    t3 = [Tile(Suit.BAMBOO, "3")]
-    t4 = [Tile(Suit.BAMBOO, "4")]
-    t5 = [Tile(Suit.BAMBOO, "5")]
+    t1 = [Tile(Suit.BAMBOO, Value.ONE)]
+    t2 = [Tile(Suit.BAMBOO, Value.TWO)]
+    t3 = [Tile(Suit.BAMBOO, Value.THREE)]
+    t4 = [Tile(Suit.BAMBOO, Value.FOUR)]
+    t5 = [Tile(Suit.BAMBOO, Value.FIVE)]
     melds = [t1*3] + [t2*3] + [t3*4] + [t4*4] + [t5 * 2]
     state: HandStateDict = {
         "round_wind": "east",
@@ -159,12 +159,12 @@ def test_score_hand2() -> None:
 
 
 def test_score_hand3() -> None:
-    t1 = [Tile(Suit.DOT, "1")]
-    t2 = [Tile(Suit.BAMBOO, "2")]
-    t3 = [Tile(Suit.BAMBOO, "3")]
-    t4 = [Tile(Suit.BAMBOO, "4")]
-    t5 = [Tile(Suit.WIND, "east")]
-    t6 = [Tile(Suit.FLOWER, "6")]
+    t1 = [Tile(Suit.DOT, Value.ONE)]
+    t2 = [Tile(Suit.BAMBOO, Value.TWO)]
+    t3 = [Tile(Suit.BAMBOO, Value.THREE)]
+    t4 = [Tile(Suit.BAMBOO, Value.FOUR)]
+    t5 = [Tile(Suit.WIND, Value.EAST)]
+    t6 = [Tile(Suit.FLOWER, Value.SIX)]
     melds = [t1 * 3] + [t2 + t3 + t4] * 2 + [t5 * 3] + [t4 * 2] + [t6]
     state: HandStateDict = {
         "round_wind": "east",
@@ -178,20 +178,20 @@ def test_score_hand3() -> None:
 
 def test_score_thirteen_orphans() -> None:
     melds = [
-        [Tile(Suit.BAMBOO, "1")],
-        [Tile(Suit.BAMBOO, "9")],
-        [Tile(Suit.DOT, "1")],
-        [Tile(Suit.DOT, "9")],
-        [Tile(Suit.CHARACTER, "1")],
-        [Tile(Suit.CHARACTER, "9")],
-        [Tile(Suit.DRAGON, "red")],
-        [Tile(Suit.DRAGON, "green")],
-        [Tile(Suit.DRAGON, "white")],
-        [Tile(Suit.WIND, "east")],
-        [Tile(Suit.WIND, "west")],
-        [Tile(Suit.WIND, "south")],
-        [Tile(Suit.WIND, "north")],
-        [Tile(Suit.WIND, "north")]
+        [Tile(Suit.BAMBOO, Value.ONE)],
+        [Tile(Suit.BAMBOO, Value.NINE)],
+        [Tile(Suit.DOT, Value.ONE)],
+        [Tile(Suit.DOT, Value.NINE)],
+        [Tile(Suit.CHARACTER, Value.ONE)],
+        [Tile(Suit.CHARACTER, Value.NINE)],
+        [Tile(Suit.DRAGON, Value.RED)],
+        [Tile(Suit.DRAGON, Value.GREEN)],
+        [Tile(Suit.DRAGON, Value.WHITE)],
+        [Tile(Suit.WIND, Value.EAST)],
+        [Tile(Suit.WIND, Value.WEST)],
+        [Tile(Suit.WIND, Value.SOUTH)],
+        [Tile(Suit.WIND, Value.NORTH)],
+        [Tile(Suit.WIND, Value.NORTH)]
     ]
     state: HandStateDict = {
         "round_wind": "east",
@@ -204,11 +204,11 @@ def test_score_thirteen_orphans() -> None:
 
 
 def test_score_mixed_orphans() -> None:
-    t1 = [Tile(Suit.BAMBOO, "1")]
-    t2 = [Tile(Suit.BAMBOO, "9")]
-    t3 = [Tile(Suit.DOT, "1")]
-    t4 = [Tile(Suit.DRAGON, "red")]
-    t5 = [Tile(Suit.WIND, "west")]
+    t1 = [Tile(Suit.BAMBOO, Value.ONE)]
+    t2 = [Tile(Suit.BAMBOO, Value.NINE)]
+    t3 = [Tile(Suit.DOT, Value.ONE)]
+    t4 = [Tile(Suit.DRAGON, Value.RED)]
+    t5 = [Tile(Suit.WIND, Value.WEST)]
     melds = [t1 * 3] + [t2 * 3] + [t3 * 3] + [t4 * 3] + [t5 * 2]
     state: HandStateDict = {
         "round_wind": "east",
@@ -221,11 +221,11 @@ def test_score_mixed_orphans() -> None:
 
 
 def test_score_orphans() -> None:
-    t1 = [Tile(Suit.BAMBOO, "1")]
-    t2 = [Tile(Suit.BAMBOO, "9")]
-    t3 = [Tile(Suit.DOT, "1")]
-    t4 = [Tile(Suit.BAMBOO, "9")]
-    t5 = [Tile(Suit.CHARACTER, "1")]
+    t1 = [Tile(Suit.BAMBOO, Value.ONE)]
+    t2 = [Tile(Suit.BAMBOO, Value.NINE)]
+    t3 = [Tile(Suit.DOT, Value.ONE)]
+    t4 = [Tile(Suit.BAMBOO, Value.NINE)]
+    t5 = [Tile(Suit.CHARACTER, Value.ONE)]
     melds = [t1 * 3] + [t2 * 3] + [t3 * 3] + [t4 * 3] + [t5 * 2]
     state: HandStateDict = {
         "round_wind": "east",
@@ -238,11 +238,11 @@ def test_score_orphans() -> None:
 
 
 def test_action_mask_meld() -> None:
-    t1 = Tile(Suit.BAMBOO, "2")
-    t2 = Tile(Suit.BAMBOO, "3")
-    t3 = Tile(Suit.BAMBOO, "4")
-    t4 = Tile(Suit.BAMBOO, "5")
-    t5 = Tile(Suit.WIND, "west")
+    t1 = Tile(Suit.BAMBOO, Value.TWO)
+    t2 = Tile(Suit.BAMBOO, Value.THREE)
+    t3 = Tile(Suit.BAMBOO, Value.FOUR)
+    t4 = Tile(Suit.BAMBOO, Value.FIVE)
+    t5 = Tile(Suit.WIND, Value.WEST)
     p0_state: PlayerStateDict = {
         "id": 0,
         "seat_wind": "east",
@@ -275,11 +275,11 @@ def test_action_mask_meld() -> None:
 
 
 def test_action_mask_discard() -> None:
-    t1 = Tile(Suit.BAMBOO, "2")
-    t2 = Tile(Suit.BAMBOO, "3")
-    t3 = Tile(Suit.BAMBOO, "4")
-    t4 = Tile(Suit.BAMBOO, "5")
-    t5 = Tile(Suit.WIND, "west")
+    t1 = Tile(Suit.BAMBOO, Value.TWO)
+    t2 = Tile(Suit.BAMBOO, Value.THREE)
+    t3 = Tile(Suit.BAMBOO, Value.FOUR)
+    t4 = Tile(Suit.BAMBOO, Value.FIVE)
+    t5 = Tile(Suit.WIND, Value.WEST)
     p0_state: PlayerStateDict = {
         "id": 0,
         "seat_wind": "east",

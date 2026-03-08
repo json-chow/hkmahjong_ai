@@ -1,4 +1,4 @@
-from game.tile import Tile, Suit
+from game.tile import Tile, Suit, Value
 from game.constants import Action, NUM_ACTIONS, TILE_TO_ID, CHOW_TO_ID
 import random
 from collections import Counter
@@ -43,6 +43,11 @@ FAAN = {
 NON_HONOR_SUITS = {Suit.DOT, Suit.BAMBOO, Suit.CHARACTER}
 HONOR_SUITS = {Suit.DRAGON, Suit.WIND}
 
+NUMBER_VALUES = list(Value)[:9]
+DRAGON_VALUES = list(Value)[9:12]
+WIND_VALUES = list(Value)[12:]
+FLOWER_VALUES = list(Value)[:8]
+
 
 class HandStateDict(TypedDict):
     win_condition: list[str]
@@ -86,20 +91,20 @@ def init_wall(seed: int | None = None) -> list[Tile]:
     wall = []
     for suit in Suit:
         if suit in NON_HONOR_SUITS:
-            for value in Tile.values[:9]:
+            for value in NUMBER_VALUES:
                 tile = Tile(suit, value)
                 wall.append(tile)
         elif suit == Suit.DRAGON:
-            for value in Tile.values[9:12]:
+            for value in DRAGON_VALUES:
                 tile = Tile(suit, value)
                 wall.append(tile)
         elif suit == Suit.WIND:
-            for value in Tile.values[12:]:
+            for value in WIND_VALUES:
                 tile = Tile(suit, value)
                 wall.append(tile)
     wall *= 4
     # Add in flower tiles
-    for value in Tile.values[:8]:
+    for value in FLOWER_VALUES:
         tile = Tile(Suit.FLOWER, value)
         wall.append(tile)
 
@@ -127,7 +132,7 @@ def score_hand(melds: list[list[Tile]], state: HandStateDict) -> int:
         # Deal with flower 'melds'
         if meld[0].suit == Suit.FLOWER:
             flowers.append(meld[0])
-            flower_val = int(meld[0].value)
+            flower_val = int(meld[0].value.value)
             if flower_val >= 5:  # seasons are flower tiles w/values 5 to 8
                 all_seasons[flower_val - 5] = 1
             else:  # flower
@@ -140,7 +145,7 @@ def score_hand(melds: list[list[Tile]], state: HandStateDict) -> int:
             # If the first and second tiles in the meld are the same, must be a pung
             if meld[0] == meld[1]:
                 pungs += 1
-                if meld[0].value not in {"1", "9"} and meld[0].suit not in HONOR_SUITS:
+                if meld[0].value not in {Value.ONE, Value.NINE} and meld[0].suit not in HONOR_SUITS:
                     orphan = False
             # Otherwise, it must be a chow
             else:
@@ -149,12 +154,12 @@ def score_hand(melds: list[list[Tile]], state: HandStateDict) -> int:
         elif len(meld) == 4:
             kongs += 1
             # Orphan condition exists for kongs as well
-            if meld[0].value not in {"1", "9"} and meld[0].suit not in HONOR_SUITS:
+            if meld[0].value not in {Value.ONE, Value.NINE} and meld[0].suit not in HONOR_SUITS:
                 orphan = False
         else:
             pair = meld[0]
             # Orphan condition for pairs as well
-            if meld[0].value not in {"1", "9"} and meld[0].suit not in HONOR_SUITS:
+            if meld[0].value not in {Value.ONE, Value.NINE} and meld[0].suit not in HONOR_SUITS:
                 orphan = False
             continue  # don't go through honor meld logics if meld is a pair
 
@@ -281,19 +286,19 @@ def check_win(
 
     # Check for thirteen orphans
     thirteen_orphans = {
-        Tile(Suit.BAMBOO, "1"),
-        Tile(Suit.BAMBOO, "9"),
-        Tile(Suit.DOT, "1"),
-        Tile(Suit.DOT, "9"),
-        Tile(Suit.CHARACTER, "1"),
-        Tile(Suit.CHARACTER, "9"),
-        Tile(Suit.DRAGON, "red"),
-        Tile(Suit.DRAGON, "green"),
-        Tile(Suit.DRAGON, "white"),
-        Tile(Suit.WIND, "east"),
-        Tile(Suit.WIND, "west"),
-        Tile(Suit.WIND, "south"),
-        Tile(Suit.WIND, "north")
+        Tile(Suit.BAMBOO, Value.ONE),
+        Tile(Suit.BAMBOO, Value.NINE),
+        Tile(Suit.DOT, Value.ONE),
+        Tile(Suit.DOT, Value.NINE),
+        Tile(Suit.CHARACTER, Value.ONE),
+        Tile(Suit.CHARACTER, Value.NINE),
+        Tile(Suit.DRAGON, Value.RED),
+        Tile(Suit.DRAGON, Value.GREEN),
+        Tile(Suit.DRAGON, Value.WHITE),
+        Tile(Suit.WIND, Value.EAST),
+        Tile(Suit.WIND, Value.SOUTH),
+        Tile(Suit.WIND, Value.NORTH),
+        Tile(Suit.WIND, Value.WEST)
     }
     if thirteen_orphans.issubset(tile_counts):
         # If all required tiles are in the hand, then it must be that the hand is a thirteen orphans
@@ -307,12 +312,12 @@ def check_win(
             suit = p_state["hand"][0].suit
             # Check if each number of the suit is in the hand
             for val in range(1, 10):
-                if Tile(suit, str(val)) not in p_state["hand"]:
+                if Tile(suit, Value(str(val))) not in p_state["hand"]:
                     break
             else:
                 # Check if there are three of 1 and three of 9 in the hand
-                if len([tile for tile in p_state["hand"] if tile.value == "1"]) == 3 and \
-                   len([tile for tile in p_state["hand"] if tile.value == "9"]) == 3:
+                if len([tile for tile in p_state["hand"] if tile.value == Value.ONE]) == 3 and \
+                   len([tile for tile in p_state["hand"] if tile.value == Value.NINE]) == 3:
                     state["nine_gates"] = True
                     return [p_state["hand"]], state
 
@@ -360,9 +365,9 @@ def _check_meld(tile_counts: Counter[Tile]) -> tuple[bool, list[list[list[Tile]]
         tile_counts[tile] += 3
 
     # Check for chows
-    if tile.suit in NON_HONOR_SUITS and int(tile.value) <= 7:
-        t2 = Tile(tile.suit, str(int(tile.value)+1))
-        t3 = Tile(tile.suit, str(int(tile.value)+2))
+    if tile.suit in NON_HONOR_SUITS and int(tile.value.value) <= 7:
+        t2 = Tile(tile.suit, Value(str(int(tile.value.value)+1)))
+        t3 = Tile(tile.suit, Value(str(int(tile.value.value)+2)))
         if tile_counts[t2] > 0 and tile_counts[t3] > 0:
             tile_counts[tile] -= 1
             tile_counts[t2] -= 1
@@ -415,20 +420,25 @@ def check_chow(p_state: PlayerStateDict, tile: Tile, current_player: bool) -> li
 
     possible_chows = []
     # Check if tile is in middle position of chow
-    tl = Tile(tile.suit, str(int(tile.value)-1))
-    tr = Tile(tile.suit, str(int(tile.value)+1))
-    if tl in hand and tr in hand:
-        possible_chows.append([tl, tile, tr])
+    if 2 <= int(tile.value.value) <= 9:
+        tl = Tile(tile.suit, Value(str(int(tile.value.value)-1)))
+        tr = Tile(tile.suit, Value(str(int(tile.value.value)+1)))
+        if tl in hand and tr in hand:
+            possible_chows.append([tl, tile, tr])
 
     # Check if tile is in leftmost position of chow
-    trr = Tile(tile.suit, str(int(tile.value)+2))
-    if tr in hand and trr in hand:
-        possible_chows.append([tile, tr, trr])
+    if 1 <= int(tile.value.value) <= 7:
+        tr = Tile(tile.suit, Value(str(int(tile.value.value)+1)))
+        trr = Tile(tile.suit, Value(str(int(tile.value.value)+2)))
+        if tr in hand and trr in hand:
+            possible_chows.append([tile, tr, trr])
 
     # Check if tile is in rightmost position of chow
-    tll = Tile(tile.suit, str(int(tile.value)-2))
-    if tll in hand and tl in hand:
-        possible_chows.append([tll, tl, tile])
+    if 3 <= int(tile.value.value) <= 9:
+        tl = Tile(tile.suit, Value(str(int(tile.value.value)-1)))
+        tll = Tile(tile.suit, Value(str(int(tile.value.value)-2)))
+        if tll in hand and tl in hand:
+            possible_chows.append([tll, tl, tile])
 
     return possible_chows
 
