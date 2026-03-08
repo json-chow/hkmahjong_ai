@@ -301,8 +301,8 @@ class MahjongGame:
             return True
         next_player_state["hand"].append(player_state["discards"].pop())
         if meld_type == "win":
-            self.perform_win(next_player_idx, meld)
-            print(f"Player {next_player_idx} wins")
+            self.perform_win(player_to_act, meld)
+            print(f"Player {player_to_act} wins")
             state["round_wind"] = self.game_state["round_wind"]
             if not self.game_state["wall"]:
                 state["win_condition"].append("last_draw")

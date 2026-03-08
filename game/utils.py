@@ -132,7 +132,7 @@ def score_hand(melds: list[list[Tile]], state: HandStateDict) -> int:
         # Deal with flower 'melds'
         if meld[0].suit == Suit.FLOWER:
             flowers.append(meld[0])
-            flower_val = int(meld[0].value.value)
+            flower_val = int(meld[0].value)
             if flower_val >= 5:  # seasons are flower tiles w/values 5 to 8
                 all_seasons[flower_val - 5] = 1
             else:  # flower
@@ -365,9 +365,9 @@ def _check_meld(tile_counts: Counter[Tile]) -> tuple[bool, list[list[list[Tile]]
         tile_counts[tile] += 3
 
     # Check for chows
-    if tile.suit in NON_HONOR_SUITS and int(tile.value.value) <= 7:
-        t2 = Tile(tile.suit, Value(str(int(tile.value.value)+1)))
-        t3 = Tile(tile.suit, Value(str(int(tile.value.value)+2)))
+    if tile.suit in NON_HONOR_SUITS and int(tile.value) <= 7:
+        t2 = Tile(tile.suit, Value(str(int(tile.value)+1)))
+        t3 = Tile(tile.suit, Value(str(int(tile.value)+2)))
         if tile_counts[t2] > 0 and tile_counts[t3] > 0:
             tile_counts[tile] -= 1
             tile_counts[t2] -= 1
@@ -420,23 +420,23 @@ def check_chow(p_state: PlayerStateDict, tile: Tile, current_player: bool) -> li
 
     possible_chows = []
     # Check if tile is in middle position of chow
-    if 2 <= int(tile.value.value) <= 9:
-        tl = Tile(tile.suit, Value(str(int(tile.value.value)-1)))
-        tr = Tile(tile.suit, Value(str(int(tile.value.value)+1)))
+    if 2 <= int(tile.value) <= 9:
+        tl = Tile(tile.suit, Value(str(int(tile.value)-1)))
+        tr = Tile(tile.suit, Value(str(int(tile.value)+1)))
         if tl in hand and tr in hand:
             possible_chows.append([tl, tile, tr])
 
     # Check if tile is in leftmost position of chow
-    if 1 <= int(tile.value.value) <= 7:
-        tr = Tile(tile.suit, Value(str(int(tile.value.value)+1)))
-        trr = Tile(tile.suit, Value(str(int(tile.value.value)+2)))
+    if 1 <= int(tile.value) <= 7:
+        tr = Tile(tile.suit, Value(str(int(tile.value)+1)))
+        trr = Tile(tile.suit, Value(str(int(tile.value)+2)))
         if tr in hand and trr in hand:
             possible_chows.append([tile, tr, trr])
 
     # Check if tile is in rightmost position of chow
-    if 3 <= int(tile.value.value) <= 9:
-        tl = Tile(tile.suit, Value(str(int(tile.value.value)-1)))
-        tll = Tile(tile.suit, Value(str(int(tile.value.value)-2)))
+    if 3 <= int(tile.value) <= 9:
+        tl = Tile(tile.suit, Value(str(int(tile.value)-1)))
+        tll = Tile(tile.suit, Value(str(int(tile.value)-2)))
         if tll in hand and tl in hand:
             possible_chows.append([tll, tl, tile])
 

@@ -32,7 +32,7 @@ class Tile:
 
     def __str__(self) -> str:
         if self.suit == Suit.FLOWER:
-            return f"{(int(self.value.value) - 1) % 4 + 1}_FLOWER"
+            return f"{(int(self.value) - 1) % 4 + 1}_FLOWER"
         return self.value.value + "_" + self.suit.name
 
     def __repr__(self) -> str:
